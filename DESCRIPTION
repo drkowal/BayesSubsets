@@ -24,3 +24,5 @@ Imports:
     glmnet, 
     leaps, 
     stats
+URL: https://github.com/drkowal/BayesSubsets
+BugReports: https://github.com/drkowal/BayesSubsets/issues
