@@ -63,19 +63,19 @@ branch_and_bound = function(yy,
     XX = XX[,-to_exclude]
 
   # Branch-and-bound search:
-  fit_all = regsubsets(x = XX, y = yy,
-                       weights = wts,
-                       nbest = n_best, nvmax = p,
-                       method = searchtype,
-                       intercept = FALSE,
-                       really.big = TRUE,
-                       force.in = to_include)
+  fit_all = leaps::regsubsets(x = XX, y = yy,
+                              weights = wts,
+                              nbest = n_best, nvmax = p,
+                              method = searchtype,
+                              intercept = FALSE,
+                              really.big = TRUE,
+                              force.in = to_include)
 
   # Indicator matrix of variable inclusions for each subset:
   temp_inclusion_index = summary(fit_all)$which
 
   # Inclusion index: need to adjust for excluded variables
-  inclusion_index = matrix(FALSE,   # FALSE = excluded
+  inclusion_index = matrix(FALSE,   # FALSE means excluded
                        nrow = nrow(temp_inclusion_index),
                        ncol = p)
 
@@ -90,7 +90,7 @@ branch_and_bound = function(yy,
 }
 #' Compute the predictive and empirical cross-validated squared error loss
 #'
-#' Use posterior predictive draws and a sampling-importance reweighting (SIR)
+#' Use posterior predictive draws and a sampling-importance resampling (SIR)
 #' algorithm to approximate the cross-validated predictive squared error loss.
 #' The empirical squared error loss (i.e., the usual quantity in cross-validation)
 #' is also returned. The values are computed relative to the "best"
@@ -105,7 +105,7 @@ branch_and_bound = function(yy,
 #' at each posterior draw of the parameters
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param yy \code{n}-dimensional vector of response variables
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param post_y_hat \code{S x n} matrix of posterior fitted values
 #' at the given \code{XX} covariate values
@@ -160,7 +160,7 @@ pp_loss = function(post_y_pred,
   if(ncol(indicators) != p)
     stop('indicators must have the same number of columns as XX has rows')
 
-  # Samples for sampling-importance reweighting (SIR):
+  # Samples for sampling-importance resampling (SIR):
   S_sir = ceiling(S*sir_frac) # should be a small fraction of S
 
   # Indices of the kth *holdout* set, k=1:K
@@ -256,7 +256,7 @@ pp_loss = function(post_y_pred,
 #' @param post_y_pred \code{S x n} matrix of posterior predictive
 #' at the given \code{XX} covariate values
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param post_y_hat \code{S x n} matrix of posterior fitted values
 #' at the given \code{XX} covariate values
@@ -330,7 +330,7 @@ pp_loss_out = function(post_y_pred,
 }
 #' Compute the predictive and empirical cross-validated loss for binary data.
 #'
-#' Use posterior predictive draws and a sampling-importance reweighting (SIR)
+#' Use posterior predictive draws and a sampling-importance resampling (SIR)
 #' algorithm to approximate the cross-validated predictive loss.
 #' The empirical loss (i.e., the usual quantity in cross-validation)
 #' is also returned. The values are computed relative to the "best"
@@ -346,7 +346,7 @@ pp_loss_out = function(post_y_pred,
 #' at each posterior draw of the parameters
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param yy \code{n}-dimensional vector of response variables
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param loss_type type of loss function; must be "cross-ent" (cross-entropy)
 #' or "misclass" (misclassication rate)
@@ -421,7 +421,7 @@ pp_loss_binary = function(post_y_pred,
       1.0*(y_obs != (g_hat > 0))
   }
 
-  # Samples for sampling-importance reweighting (SIR):
+  # Samples for sampling-importance resampling (SIR):
   S_sir = ceiling(S*sir_frac) # should be a small fraction of S
 
   # Indices of the kth *holdout* set, k=1:K
@@ -506,7 +506,7 @@ pp_loss_binary = function(post_y_pred,
 #' Compute the predictive and empirical cross-validated Mahalanobis loss
 #' under the random intercept model
 #'
-#' Use posterior predictive draws and a sampling-importance reweighting (SIR)
+#' Use posterior predictive draws and a sampling-importance resampling (SIR)
 #' algorithm to approximate the cross-validated predictive Mahalanobis loss.
 #' The empirical Mahalanobis loss is also returned. The values are computed relative to the "best"
 #' subset according to minimum empirical Mahalanobis loss.
@@ -523,7 +523,7 @@ pp_loss_binary = function(post_y_pred,
 #' of the random intercept SD
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param YY \code{m x n} matrix of response variables (optional)
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
 #' draws summed over the replicates within each subject (optional)
@@ -571,7 +571,7 @@ pp_loss_randint = function(post_y_pred,
     post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
   }
 
-  # Samples for sampling-importance reweighting (SIR):
+  # Samples for sampling-importance resampling (SIR):
   S_sir = ceiling(S*sir_frac) # should be a small fraction of S
 
   # Indices of the kth *holdout* set, k=1:K
@@ -678,7 +678,7 @@ pp_loss_randint = function(post_y_pred,
 #' at each posterior draw of the parameters (optional)
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param yy \code{n}-dimensional vector of response variables (optional)
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param eps_level probability required to match the predictive
 #' performance of the "best" model (up to \code{eta_level})
@@ -878,7 +878,7 @@ accept_family = function(post_y_pred,
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param eps_level probability required to match the predictive
 #' performance of the "best" model (up to \code{eta_level})
@@ -1076,7 +1076,7 @@ accept_family_binary = function(post_y_pred,
 #' of the random intercept SD
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param YY \code{m x n} matrix of response variables (optional)
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
 #' draws summed over the replicates within each subject (optional)
@@ -1263,7 +1263,7 @@ accept_family_randint = function(post_y_pred,
 #' of subsets, compute for each variable the proportion of acceptable subsets in
 #' which that variable appears. If specified, variable co-appearances
 #' can be computed as reported as well.
-#' @param indicators \code{L x p} matrix of inclusion indicators
+#' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
 #' where each row denotes a candidate subset
 #' @param all_accept indices (i.e., rows of \code{indicators})
 #' that correspond to the acceptable subsets
@@ -1661,8 +1661,6 @@ bayeslmm = function(Y, X, type = 'random-int',
   # Parameters for the beta shrinkage priors:
   hsparams = initEvolParams(beta, evol_error = "HS")
   sigma_beta = as.numeric(hsparams$sigma_wt)
-  #hsparams = initHierHC(eps2 = beta^2)
-  #sigma_beta = as.numeric(1/sqrt(hsparams$etaHC[[1]]))
 
   # Store the MCMC output in separate arrays (better computation times)
   post_y_pred = array(NA, c(nsave, m, n))
@@ -1733,12 +1731,6 @@ bayeslmm = function(Y, X, type = 'random-int',
     # Step 5: sample the beta variance parameters
     hsparams = sampleEvolParams(beta, evolParams = hsparams, evol_error = "HS")
     sigma_beta = as.numeric(hsparams$sigma_wt)
-    # hsparams = sampleHierHC(eps2 = as.numeric(beta^2),
-    #                         etaHC = hsparams$etaHC,
-    #                         xiHC = hsparams$xiHC,
-    #                         eta0 = hsparams$eta0,
-    #                         xi0 = hsparams$xi0)
-    # sigma_beta = as.numeric(1/sqrt(hsparams$etaHC[[1]]))
 
     # Store the MCMC output:
     if(nsi > nburn){
@@ -1861,78 +1853,6 @@ loss_maha = function(YY, y_hat, m_scale){
     sum(YY^2) - 2*crossprod(y_hat, colSums(YY)) + m*sum((y_hat)^2) -
       m_scale*(sum((colSums(YY) - m*y_hat)^2))
   )
-}
-#####################################################################################################
-# initHierHC() initializes the hierarchical horseshoe prior parameters
-# Inputs:
-# eps2: array of (sum of) squared residuals, with array dimensions ordered hierarchical
-# N (= 1): the top level may be common across N components, which requires a rescaling
-# priorScale ( = 1): assume lowest level is lambda_0 ~ C+(0, priorScale)
-#####################################################################################################
-initHierHC = function(eps2, N = 1, priorScale = 1){
-
-  # Number of "replicates" for each level
-  dj = dim(eps2); if(is.null(dj)) dj = length(eps2)
-
-  # Number of levels
-  Q = length(dj)
-
-  # etaHC contains the "1/lambda^2" parameters and xiHC contains the PX paramaters
-  etaHC = xiHC = vector('list', Q)
-
-  # First level: allow for "sums" over other indices (beforehand)
-  etaHC[[1]] = N/eps2; xiHC[[1]] = 1/(2*etaHC[[1]])
-
-  if(Q > 1){for(j in 2:Q){
-    etaHC[[j]] = 1/(2*colMeans(xiHC[[j-1]]))
-    xiHC[[j]] = 1/(2*etaHC[[j]])
-  }}
-
-  # Global parameters:
-  eta0 = 1/(2*mean(xiHC[[Q]])); xi0 = 1/(2*eta0 + 1/priorScale^2)
-
-  list(etaHC = etaHC, xiHC = xiHC, eta0 = eta0, xi0 = xi0)
-}
-#####################################################################################################
-# sampleHierHC() samples the hierarchical horseshoe prior parameters
-# Inputs:
-# eps2: array of (sum of) squared residuals, with array dimensions ordered hierarchical
-# etaHC: a list of the hierarchical "1/lambda^2" parameters
-# xiHC: a corresponding list of the hierarchical PX parameters
-# eta0: 1/lambda_0^2, i.e., inverse of the global shrinkage parameter
-# xi0: a corresponding "global" PX parameter
-# N (= 1): the top level may be common across N components, which requires a rescaling
-# priorScale ( = 1): assume lowest level is lambda_0 ~ C+(0, priorScale)
-#####################################################################################################
-sampleHierHC = function(eps2, etaHC, xiHC, eta0, xi0, N = 1, priorScale = 1){
-
-  # Number of "replicates" for each level
-  dj = dim(eps2); if(is.null(dj)) dj = length(eps2)
-
-  # Number of levels
-  Q = length(dj)
-
-  # Adjust eps2 for small values:
-  eps2 = eps2 + any(eps2 < 10^-16)/10^8
-
-  for(j in 1:Q){
-
-    # tau parameters (1/lambda^2):
-    if(j > 1){
-      etaHC[[j]] = array(rgamma(n = length(etaHC[[j]]), shape = (dj[j-1] + 1)/2, rate = colSums(xiHC[[j-1]]) + xiHC[[j]]), dj[j:Q])
-    } else etaHC[[1]] = array(rgamma(n = length(etaHC[[1]]), shape = (N + 1)/2, rate = 1/2*eps2 + xiHC[[1]]), dj)
-
-    # xi parameters (PX)
-    if(j < Q){
-      xiHC[[j]]  = array(rgamma(n = length(xiHC[[j]]), shape = 1, rate = matrix(etaHC[[j]]) + rep(matrix(etaHC[[j+1]]), each = dj[j])), dj[j:Q])
-    } else xiHC[[j]]  = array(rgamma(n = length(xiHC[[j]]), shape = 1, rate = matrix(etaHC[[j]]) + rep(matrix(eta0), each = dj[j])), dj[j:Q])
-  }
-
-  # Global parameters:
-  eta0 = rgamma(n = 1, shape = (dj[Q] + 1)/2, rate = sum(xiHC[[Q]]) + xi0)
-  xi0 = rgamma(n = 1, shape = 1, rate = eta0 + 1/priorScale^2)
-
-  list(etaHC = etaHC, xiHC = xiHC, eta0 = eta0, xi0 = xi0)
 }
 #----------------------------------------------------------------------------
 #' Sampler evolution error variance parameters
