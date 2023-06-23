@@ -116,7 +116,7 @@ branch_and_bound = function(yy,
 #' @details The quantity \code{post_y_hat} is the conditional expectation of the
 #' response for each covariate value (columns) and using the parameters sampled
 #' from the posterior (rows). For Bayesian linear regression, this term is
-#' \code{Xbeta}. If unspecified, the algorithm will instead use \code{post_y_pred},
+#' \code{X \%*\% beta}. If unspecified, the algorithm will instead use \code{post_y_pred},
 #' which is still correct but has lower Monte Carlo efficiency.
 #'
 #' @export
@@ -264,7 +264,7 @@ pp_loss = function(post_y_pred,
 #' @details The quantity \code{post_y_hat} is the conditional expectation of the
 #' response for each covariate value (columns) and using the parameters sampled
 #' from the posterior (rows). For Bayesian linear regression, this term is
-#' \code{Xbeta}. If unspecified, the algorithm will instead use \code{post_y_pred},
+#'  \code{X \%*\% beta}. If unspecified, the algorithm will instead use \code{post_y_pred},
 #' which is still correct but has lower Monte Carlo efficiency.
 #'
 #' @export
