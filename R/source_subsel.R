@@ -1,4 +1,3 @@
-# Note: to update, use "git push -u origin main" (C******7)
 # Source functions for subset selection and acceptable families
 
 #' Branch-and-bound algorithm for linear subset search
@@ -33,6 +32,7 @@ branch_and_bound = function(yy,
   n = nrow(XX); p = ncol(XX)
 
   # Useful step:
+  xnames = colnames(XX);
   colnames(XX) = 1:p
 
   # Some basic checks:
@@ -82,6 +82,9 @@ branch_and_bound = function(yy,
   # Update the non-excluded entries:
   inclusion_index[,match(colnames(temp_inclusion_index),
                      1:p)] = temp_inclusion_index
+
+  # And add the variable names:
+  colnames(inclusion_index) = xnames
 
   return(inclusion_index)
 }
@@ -500,6 +503,166 @@ pp_loss_binary = function(post_y_pred,
        emp_loss = emp_loss)
   )
 }
+#' Compute the predictive and empirical cross-validated Mahalanobis loss
+#' under the random intercept model
+#'
+#' Use posterior predictive draws and a sampling-importance reweighting (SIR)
+#' algorithm to approximate the cross-validated predictive Mahalanobis loss.
+#' The empirical Mahalanobis loss is also returned. The values are computed relative to the "best"
+#' subset according to minimum empirical Mahalanobis loss.
+#' Specifically, these quantities are computed for a collection of
+#' linear models that are fit to the Bayesian model output, where
+#' each linear model features a different subset of predictors.
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' at the given \code{XX} covariate values for \code{m} replicates per subject
+#' @param post_lpd \code{S} evaluations of the log-likelihood computed
+#' at each posterior draw of the parameters
+#' @param post_sigma_e (\code{nsave}) draws from the posterior distribution
+#' of the observation error SD
+#' @param post_sigma_u (\code{nsave}) draws from the posterior distribution
+#' of the random intercept SD
+#' @param XX \code{n x p} matrix of covariates at which to evaluate
+#' @param YY \code{m x n} matrix of response variables (optional)
+#' @param indicators \code{L x p} matrix of inclusion indicators
+#' where each row denotes a candidate subset
+#' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
+#' draws summed over the replicates within each subject (optional)
+#' @param K number of cross-validation folds
+#' @param sir_frac fraction of the posterior samples to use for SIR
+#' @return a list with two elements: \code{pred_loss} and \code{emp_loss}
+#' for the predictive and empirical loss, respectively, for each subset.
+
+#' @export
+pp_loss_randint = function(post_y_pred,
+                           post_lpd,
+                           post_sigma_e,
+                           post_sigma_u,
+                           XX,
+                           YY,
+                           indicators,
+                           post_y_pred_sum = NULL,
+                           K = 10,
+                           sir_frac = 0.5
+){
+
+  # Get dimensions of the covariate matrix:
+  n = nrow(XX); p = ncol(XX)
+
+  # And some other dimensions
+  S = nrow(post_y_pred) # number of posterior simulations
+  m = dim(post_y_pred)[2] # number of replicates per subject
+  L = nrow(indicators)  # number of subsets to consider
+
+  # Some basic checks:
+  if(!is.null(YY) && ncol(YY) !=n)
+    stop('the number of columns of YY must equal the number of rows of XX')
+
+  if(dim(post_y_pred)[3] != n)
+    stop('incorrect dimensions for post_y_pred')
+
+  if(!is.null(post_lpd) && nrow(post_lpd) != S)
+    stop('post_lpd must have the same number of rows (simulations) as post_y_pred')
+
+  if(ncol(indicators) != p)
+    stop('indicators must have the same number of columns as XX has rows')
+
+  # This can be slow if n is large:
+  if(is.null(post_y_pred_sum)){
+    post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
+  }
+
+  # Samples for sampling-importance reweighting (SIR):
+  S_sir = ceiling(S*sir_frac) # should be a small fraction of S
+
+  # Indices of the kth *holdout* set, k=1:K
+  I_k = split(sample(1:n),
+              1:K)
+
+  # For each holdout set, obtain samples from the predictive distribution
+  # conditional only on the training data; then compare with test data
+  # and posterior predictive distribution of the test data
+  pred_loss = array(0, c(S_sir, L))
+  emp_loss = numeric(L)
+  for(k in 1:K){
+
+    # Log importance weights:
+    logw_k = -rowSums(as.matrix(post_lpd[,I_k[[k]]]))
+    logw_k = logw_k - min(logw_k) # useful numerical adjustment
+
+    # SIR indices:
+    samp_inds = sample(1:S,
+                       S_sir,
+                       prob=exp(logw_k),
+                       replace = FALSE)
+
+    # Compute the objects needed for in-sample regression:
+    objXY = getXY_randint(XX = XX[-I_k[[k]], ],
+                          post_y_pred = post_y_pred[samp_inds, ,-I_k[[k]]],
+                          post_sigma_e = post_sigma_e[samp_inds],
+                          post_sigma_u = post_sigma_u[samp_inds],
+                          post_y_pred_sum = post_y_pred_sum[samp_inds, -I_k[[k]]])
+    X_star_in = objXY$X_star; y_star_in = objXY$y_star; rm(objXY)
+
+    # Objects needed for out-of-sample regression:
+    n_out = length(I_k[[k]])
+    X_out = matrix(XX[I_k[[k]],], nrow = n_out); # corresponding x-variables
+    Y_out = matrix(YY[,I_k[[k]]], nrow = m); # corresponding y-variables
+    post_y_pred_out = post_y_pred[samp_inds, ,I_k[[k]]] # out-of-sample predictive points
+
+    # Recurring terms:
+    Y2_out = sum(Y_out^2, na.rm=TRUE); Y_sum_out = colSums(Y_out, na.rm=TRUE)
+    post_y_pred_sum_out = post_y_pred_sum[samp_inds, I_k[[k]]] # out-of-sample predictive sum
+    post_y2_pred_out = rowSums(post_y_pred_out^2)
+    post_m_scale = 1/(post_sigma_e[samp_inds]^2/post_sigma_u[samp_inds]^2 + m)
+    m_scale_hat = mean(post_m_scale)
+
+    # For each subsets compute (i) the coefficients and (ii) the predictive and empirical losses
+    for(ell in 1:L){
+      # Estimate the in-sample coefficients:
+      beta_ell = rep(0, p)
+      beta_ell[indicators[ell,]] = coef(
+        lm(y_star_in ~ X_star_in[,indicators[ell,]] - 1)
+      )
+      # Fitted values:
+      XB_ell = X_out%*%beta_ell
+
+      # Compute the *empirical* Mahalanobis loss:
+      emp_loss[ell] = emp_loss[ell] + 1/K*1/(n_out*m)*(
+        Y2_out - 2*crossprod(XB_ell, Y_sum_out) + m*sum((XB_ell)^2) -
+          m_scale_hat*(sum((Y_sum_out - m*XB_ell)^2))
+      )
+      # Compare to the full version:
+      # res = matrix(Y_out - rep(X_out%*%beta_ell, each = m))
+      # Omega_hat = diag(1, m) - m_scale_hat
+      # Omega_block_hat = bdiag(lapply(1:n_out, function(i){Omega_hat}))
+      # t(res)%*%Omega_block_hat%*%res
+
+      # Compute the *predictive* Mahalanobis loss:
+      pred_loss[,ell] = pred_loss[,ell] + 1/K*1/(n_out*m)*(
+        post_y2_pred_out - 2*tcrossprod(post_y_pred_sum_out, t(XB_ell)) + m*sum((XB_ell)^2) -
+          post_m_scale*rowSums((post_y_pred_sum_out - rep(m*XB_ell, each = S_sir))^2)
+      )
+    }
+  }
+
+  # Under missingness, use predictive expectation:
+  if(any(is.na(Y))) emp_loss = colMeans(pred_loss)
+
+  # Best subset by out-of-sample empirical loss:
+  ell_ref = which.min(emp_loss)
+
+  # Adjust the empirical loss relative to this term:
+  emp_loss = 100*(emp_loss - emp_loss[ell_ref])/emp_loss[ell_ref]
+
+  # Percent difference in predictive loss relative to best model:
+  pred_loss = apply(pred_loss, 2, function(ploss)
+    100*(ploss - pred_loss[,ell_ref])/pred_loss[,ell_ref])
+
+  return(
+    list(pred_loss = pred_loss,
+         emp_loss = emp_loss)
+  )
+}
 #' Compute the acceptable family of linear subsets
 #'
 #' Given output from a Bayesian model and a candidate of
@@ -683,6 +846,7 @@ accept_family = function(post_y_pred,
          xlab = 'Subset Size',
          ylab = 'Difference in loss (%)',
          main = paste('Difference in ',K,'-fold loss (%)', sep=''))
+    abline(v = 1:p, col='gray')
     abline(h = eta_level, lwd=2, lty=6)
     abline(v = (subset_size + jitter)[ell_small], lwd=5, col='darkgray')
     if(!is.null(ell_min)) abline(v = (subset_size + jitter)[ell_min], lwd=3, col='lightgray', lty=3)
@@ -722,7 +886,7 @@ accept_family = function(post_y_pred,
 #' and the "best" model
 #' @param loss_type loss function to be used; currently consider
 #' "cross-ent" (cross-entropy) or "misclass" (misclassication rate)
-#' @param yy \code{n}-dimensional vector of response variables (optional)
+#' @param yy \code{n}-dimensional vector of response variables
 #' @param post_y_hat \code{S x n} matrix of posterior fitted values
 #' at the given \code{XX} covariate values (optional)
 #' @param K number of cross-validation folds
@@ -880,6 +1044,207 @@ accept_family_binary = function(post_y_pred,
            jitter + subset_size, pi_loss[,2],
            length=0.05, angle=90, code=3, lwd=4)
     if(!is.null(emp_loss)) lines(subset_size + jitter, emp_loss, type='p', lwd=4, col='gray', pch=4, cex = 1.5)
+  }
+
+  return(
+    list(
+      all_accept = all_accept,
+      beta_hat_small = beta_hat_small,
+      beta_hat_min = beta_hat_min,
+      ell_small = ell_small,
+      ell_min = ell_min
+    )
+  )
+}
+#' Compute the acceptable family of linear subsets for the
+#' random intercept model
+#'
+#' Given output from a Bayesian random intercept model and a candidate of
+#' subsets, compute the *acceptable family* of subsets that
+#' match or nearly match the predictive accuracy of the "best" subset.
+#' The acceptable family may be computed for any set of covariate values
+#' \code{XX}; if \code{XX = X} are the in-sample points, then
+#' cross-validation is used to assess out-of-sample predictive performance.
+#'
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' at the given \code{XX} covariate values for \code{m} replicates per subject
+#' @param post_lpd \code{S} evaluations of the log-likelihood computed
+#' at each posterior draw of the parameters
+#' @param post_sigma_e (\code{nsave}) draws from the posterior distribution
+#' of the observation error SD
+#' @param post_sigma_u (\code{nsave}) draws from the posterior distribution
+#' of the random intercept SD
+#' @param XX \code{n x p} matrix of covariates at which to evaluate
+#' @param YY \code{m x n} matrix of response variables (optional)
+#' @param indicators \code{L x p} matrix of inclusion indicators
+#' where each row denotes a candidate subset
+#' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
+#' draws summed over the replicates within each subject (optional)
+#' @param eps_level probability required to match the predictive
+#' performance of the "best" model (up to \code{eta_level})
+#' @param eta_level allowable margin (%) between each acceptable model
+#' and the "best" model
+#' @param K number of cross-validation folds (optional)
+#' @param sir_frac fraction of the posterior samples to use for SIR (optional)
+#' @param plot logical; if TRUE, include a plot to summarize the predictive
+#' performance across candidate subsets
+#' @return a list containing the following elements:
+#' \itemize{
+#' \item \code{all_accept}: indices (i.e., rows of \code{indicators})
+#' that correspond to the acceptable subsets
+#' \item \code{beta_hat_small} linear coefficients for the
+#' smallest acceptable model
+#' \item \code{beta_hat_min} linear coefficients for the
+#' "best" acceptable model
+#' \item \code{ell_small}: index (i.e., row of \code{indicators}) of the
+#' smallest acceptable model
+#' \item \code{ell_min}: index (i.e., row of \code{indicators}) of the
+#' "best" acceptable model
+#' }
+#' @details When \code{XX = X} is the observed covariate values,
+#' then \code{post_lpd} and \code{yy} must be provided. These
+#' are used to compute the cross-validated predictive and empirical
+#' squared errors; the predictive version relies on a sampling importance-resampling
+#' procedure.
+#'
+#' When \code{XX} corresponds to a new set of covariate values, then set \code{post_lpd = NULL}
+#' and \code{yy = NULL} (these are the default values).
+#'
+#' Additional details on the predictive and empirical comparisons are
+#' in \code{pp_loss_randint}.
+#'
+#' @importFrom graphics abline arrows lines
+#' @importFrom stats approxfun binomial coef lm quantile runif
+#' @export
+accept_family_randint = function(post_y_pred,
+                                 post_lpd,
+                                 post_sigma_e,
+                                 post_sigma_u,
+                                 XX,
+                                 YY,
+                                 indicators,
+                                 post_y_pred_sum = NULL,
+                                 eps_level = 0.05,
+                                 eta_level = 0.00,
+                                 K = 10,
+                                 sir_frac = 0.5,
+                                 plot = TRUE
+){
+
+  # Get dimensions of the covariate matrix:
+  n = nrow(XX); p = ncol(XX)
+
+  # And some other dimensions
+  S = nrow(post_y_pred) # number of posterior simulations
+  m = dim(post_y_pred)[2] # number of replicates per subject
+  L = nrow(indicators)  # number of subsets to consider
+
+  # Some basic checks:
+  if(!is.null(YY) && ncol(YY) !=n)
+    stop('the number of columns of YY must equal the number of rows of XX')
+
+  if(dim(post_y_pred)[3] != n)
+    stop('incorrect dimensions for post_y_pred')
+
+  if(!is.null(post_lpd) && nrow(post_lpd) != S)
+    stop('post_lpd must have the same number of rows (simulations) as post_y_pred')
+
+  if(ncol(indicators) != p)
+    stop('indicators must have the same number of columns as XX has rows')
+
+  # This can be slow if n is large:
+  if(is.null(post_y_pred_sum)){
+    post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
+  }
+
+  # Compute the empirical and predictive losses:
+  pred_emp_loss = pp_loss_randint(post_y_pred = post_y_pred,
+                                  post_lpd = post_lpd,
+                                  post_sigma_e = post_sigma_e,
+                                  post_sigma_u = post_sigma_u,
+                                  XX = XX,
+                                  YY = YY,
+                                  indicators = indicators,
+                                  post_y_pred_sum = post_y_pred_sum,
+                                  K = K,
+                                  sir_frac = sir_frac)
+
+  # Store these better:
+  emp_loss = pred_emp_loss$emp_loss
+  pred_loss = pred_emp_loss$pred_loss
+  rm(pred_emp_loss)
+
+  # Indices of acceptable subsets:
+  all_accept = which(colMeans(pred_loss <= eta_level)
+                     >= eps_level)
+
+  # Index of "best" subset, if possible:
+  if(!is.null(emp_loss)){
+    ell_min = which.min(emp_loss)
+  } else ell_min = NULL
+
+  # Subset sizes:
+  subset_size = rowSums(indicators)
+
+  # Minimize size of acceptable subset:
+  min_size_accept = min(subset_size[all_accept])
+
+  # Index of acceptable subsets with this size:
+  ind_min_size_accept = which(subset_size[all_accept] == min_size_accept)
+
+  # If more than one, select the minimum empirical loss (or expected predictive loss)
+  if(length(ind_min_size_accept) > 1){
+    if(!is.null(emp_loss)){
+      # use empirical loss, if available
+      ell_small = all_accept[ind_min_size_accept][which.min(emp_loss[all_accept[ind_min_size_accept]])]
+    } else {
+      # otherwise, use expected predictive loss
+      ell_small = all_accept[ind_min_size_accept][which.min(colMeans(pred_loss)[all_accept[ind_min_size_accept]])]
+    }
+  } else ell_small = all_accept[ind_min_size_accept]
+  if(is.infinite(ell_small)) ell_small = ell_min # in case there is none?
+
+  # Compute the coefficients for each index:
+  objXY = getXY_randint(XX = XX,
+                        post_y_pred = post_y_pred,
+                        post_sigma_e = post_sigma_e,
+                        post_sigma_u = post_sigma_u,
+                        post_y_pred_sum = post_y_pred_sum)
+  X_star = objXY$X_star; y_star = objXY$y_star; rm(objXY)
+
+  # coefficients for "best" subset
+  if(!is.null(ell_min)){
+    beta_hat_min = numeric(p)
+    beta_hat_min[indicators[ell_min,]] =
+      coef(lm(y_star ~ X_star[, indicators[ell_min,]] - 1))
+  } else beta_hat_min = NULL
+
+  # coefficients for smallest acceptable subset:
+  beta_hat_small = numeric(p)
+  beta_hat_small[indicators[ell_small,]] =
+    coef(lm(y_star ~ X_star[, indicators[ell_small,]] - 1))
+
+  # Now add the plot, if desired:
+  if(plot){
+    # 100(1 - 2*eps_level)% prediction interval for the loss
+    pi_loss = t(apply(pred_loss, 2,
+                      quantile, c(eps_level, 1 - eps_level)))
+
+    jitter = runif(L, min = -0.25, max = 0.25)
+    plot(subset_size + jitter,
+         colMeans(pred_loss), type='p', ylim = range(pi_loss, 0), lwd=4,
+         xlab = 'Subset Size',
+         ylab = 'Difference in loss (%)',
+         main = paste('Difference in ',K,'-fold Mahalanobis loss (%)', sep=''), #)
+         cex.main = 2, cex.lab = 2, cex.axis = 2)
+    abline(v = 1:p, col='gray')
+    abline(h = eta_level, lwd=2, lty=6)
+    abline(v = (subset_size + jitter)[ell_small], lwd=8, col='darkgray')
+    if(!is.null(ell_min)) abline(v = (subset_size + jitter)[ell_min], lwd=8, col='lightgray', lty=3)
+    arrows(jitter + subset_size, pi_loss[,1],
+           jitter + subset_size, pi_loss[,2],
+           length=0.15, angle=90, code=3, lwd=8)
+    if(!is.null(emp_loss)) lines(subset_size + jitter, emp_loss, type='p', lwd=8, col='gray', pch=4, cex = 1.5)
   }
 
   return(
@@ -1088,6 +1453,85 @@ proj_posterior = function(post_y_pred, XX, sub_x = 1:ncol(XX), use_ols = TRUE){
 
   return(post_beta)
 }
+
+#' Projected predictive distribution for regression coefficients
+#' in the random intercept model
+#'
+#' Given draws from the predictive distribution of the random intercept model, project these
+#' draws onto (a  subset of) the covariates using Mahalanobis loss. This produces
+#' many predictive draws for the regression coefficients,
+#' which provides uncertainty quantification.
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' at the given \code{XX} covariate values
+#' @param XX \code{n x p} matrix of covariates
+#' @param sub_x vector of inclusion indicators for the \code{p} covariates;
+#' the remaining coefficients will be fixed at zero
+#' @param post_sigma_e (\code{nsave}) draws from the posterior distribution
+#' of the observation error SD
+#' @param post_sigma_u (\code{nsave}) draws from the posterior distribution
+#' of the random intercept SD
+#' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
+#' draws summed over the replicates within each subject (optional)
+#' @return \code{post_beta}: the \code{S x p} matrix of
+#' draws from the projected predictive distribution of  the regression coefficients.
+#' @import Matrix
+#' @export
+proj_posterior_randint = function(post_y_pred, XX, sub_x = 1:ncol(XX),
+                                  post_sigma_e, post_sigma_u,
+                                  post_y_pred_sum = NULL){
+
+  # Get dimensions of the covariate matrix:
+  n = nrow(XX); p = ncol(XX)
+
+  # And some other dimensions
+  S = nrow(post_y_pred) # number of posterior simulations
+  m = dim(post_y_pred)[2] # number of replicates per subject
+
+  if(dim(post_y_pred)[3] != n)
+    stop('incorrect dimensions for post_y_pred')
+
+  if(length(sub_x) > p)
+    stop('length of sub_x must be less than or equal to p')
+
+  # This can be slow if n is large:
+  if(is.null(post_y_pred_sum)){
+    post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
+  }
+
+  # Recurring term:
+  m_scale_hat = mean(1/(post_sigma_e^2/post_sigma_u^2 + m))
+
+  # Subset the columns of XX:
+  XX_nz = XX[, sub_x]
+
+  # Storage: include zeros as needed!
+  post_beta = array(0, c(S, p))
+
+  # Estimated Mahalanobis weight matrix (block diagonal), ignoring sigma_e^2:
+  Omega_hat = diag(1, m) - m_scale_hat
+
+  # Matrix square-root, then blocked:
+  sqrt_Omega_hat = chol(Omega_hat)
+  sqrt_Omega_block_hat = bdiag(lapply(1:n, function(i){sqrt_Omega_hat}))
+
+  # Stacked X-matrix:
+  X_stack = apply(XX_nz, 2, function(x)
+    matrix(rep(x, each = m), nrow = m))
+
+  # Design matrix:
+  X_star = as.matrix(sqrt_Omega_block_hat%*%X_stack)
+
+  post_beta[,sub_x] = t(sapply(1:S, function(s){
+    # Response matrix, ignoring sigma_e^2::
+    Omega_y_s = post_y_pred[s,,] - rep(m_scale_hat*post_y_pred_sum[s,], each = m)
+    y_star_s = matrix(crossprod(Matrix::solve(sqrt_Omega_hat),
+                                   Omega_y_s))
+    # And the coefficients:
+    coef(lm(y_star_s ~ X_star-1))
+  }))
+
+  return(post_beta)
+}
 #' Marginal pre-screening algorithm
 #'
 #' Given \code{S} draws of the \code{p} regression coefficients,
@@ -1149,3 +1593,459 @@ prescreen_lasso = function(beta_hat_lasso, num_to_keep){
 }
 
 
+#' MCMC sampling algorithm for linear mixed models
+#'
+#' Sample the parameters of a linear mixed model
+#' for (i) random intercept models or (ii) random
+#' slope models. The function assumes that the responses
+#' are observed without missingness and for the same
+#' number of observation points.
+#'
+#' @param Y (\code{m x n}) matrix of response variables
+#' @param X (\code{n x p}) matrix of covariates
+#' @param type of model; must be 'random-int' or 'random-slope'
+#' @param nsave number of MCMC iterations to record
+#' @param nburn number of MCMC iterations to discard (burin-in)
+#' @param nskip number of MCMC iterations to skip between saving iterations,
+#' i.e., save every (nskip + 1)th draw
+#' @return list of posterior samples of all parameters
+#' @importFrom truncdist rtrunc
+#' @export
+bayeslmm = function(Y, X, type = 'random-int',
+                    nsave = 5000, nburn = 1000, nskip = 0){
+
+  # Quick check:
+  if(type != 'random-int')
+    stop('only random intercept model implemented so far')
+
+  # Storage:
+  m = nrow(Y) # Number of replicates per subject
+  n = ncol(Y) # Number of subjects
+  p = ncol(X) # Number of covariates
+
+  # Check for missingness:
+  Yna = Y # The original data, including NAs
+  any.missing = any(is.na(Yna))
+  if(any.missing){
+    # Indices of missing values:
+    na.ind = which(is.na(Y), arr.ind = TRUE);
+    Y[na.ind] = mean(Y, na.rm=TRUE)
+  }
+
+  # Recurring terms:
+  XtX = crossprod(X)
+  XtY = crossprod(X, t(Y))
+  #---------------------------------------------------------------------------
+  # Initialize:
+  #---------------------------------------------------------------------------
+  # Initialize the regression coefficients using the subject means:
+  y_bar = colMeans(Y)
+  beta = coef(lm(y_bar ~ X - 1))
+
+  # In case there are NAs...likely due to p > n
+  if(any(is.na(beta))){
+    #beta[is.na(beta)] = 0
+    beta = chol2inv(chol(XtX + diag(mean(XtX^2), p)))%*%rowMeans(XtY)
+  }
+
+  # Form in the "Y" dimension:
+  XB = rep(X%*%beta, each = m) # does not need to be a matrix
+
+  # Initialize the random effects based on the residuals:
+  u_i = colMeans(Y - XB)
+  sigma_u = sd(u_i)
+
+  # And the observation SD:
+  sigma_e = sd(Y - XB - rep(u_i, each = m))
+
+  # Parameters for the beta shrinkage priors:
+  hsparams = initEvolParams(beta, evol_error = "HS")
+  sigma_beta = as.numeric(hsparams$sigma_wt)
+  #hsparams = initHierHC(eps2 = beta^2)
+  #sigma_beta = as.numeric(1/sqrt(hsparams$etaHC[[1]]))
+
+  # Store the MCMC output in separate arrays (better computation times)
+  post_y_pred = array(NA, c(nsave, m, n))
+  post_y_pred_sum = array(NA, c(nsave, n))
+  post_beta = array(NA, c(nsave, p))
+  post_u = array(NA, c(nsave, n))
+  post_sigma_u = post_sigma_e = numeric(nsave)
+  post_lpd = array(NA, c(nsave, n))
+
+  # Total number of MCMC simulations:
+  nstot = nburn+(nskip+1)*(nsave)
+  skipcount = 0; isave = 0 # For counting
+
+  # Run the MCMC:
+  for(nsi in 1:nstot){
+
+    # Step 0: impute if needed
+    if(any.missing){
+      Y[na.ind] = matrix(XB +  rep(u_i, each = m),
+                         nrow = m)[na.ind] +
+        sigma_e*rnorm(n = nrow(na.ind))
+      XtY = crossprod(X, t(Y))
+    }
+
+    # Step 1: sample the beta coefficients
+    # after integrating out the random effects
+
+    # First, compute the matrix inverse:
+    Omega = sigma_e^-2*(diag(m) -
+                  1/(sigma_e^2/sigma_u^2 + m))
+
+    # m=2
+    #detSig = (sigma_u^2 + sigma_e^2)^2 - sigma_u^4
+    #Omega = 1/(detSig)*matrix(c(sigma_u^2 + sigma_e^2, -sigma_u^2,
+    #                            -sigma_u^2, sigma_u^2 + sigma_e^2), nrow = 2)
+
+    # Terms needed:
+    chQbeta = chol(XtX*sum(Omega) + diag(sigma_beta^-2))
+    ell_beta = XtY%*%colSums(Omega) #(crossprod(X, Y[1,])*sum(Omega[,1]) + crossprod(X, Y[2,])*sum(Omega[,2]))
+
+    # And sample:
+    beta = backsolve(chQbeta,
+                     forwardsolve(t(chQbeta), ell_beta) +
+                       rnorm(p))
+    # Fitted part:
+    XB = rep(X%*%beta, each = m)
+
+    # Step 2: sample the random effects
+    postSD = 1/sqrt(m*sigma_e^-2 + sigma_u^-2)
+    postMean = sigma_e^-2*colSums(Y - XB)*postSD^2
+    u_i = rnorm(n = n, mean = postMean, sd = postSD)
+
+    # Step 3: sample the random effects SD
+    u_offset = any(u_i^2 < 10^-16)*max(10^-8, mad(u_i)/10^6) # offset for numerical reasons
+    sse_u = sum(u_i^2) + u_offset
+
+    sigma_u = 1/sqrt(truncdist::rtrunc(n = 1, "gamma",
+                                       a = (1/100)^2, b = Inf,
+                                       shape = (n+1)/2,
+                                       rate = 1/2*sse_u))
+
+    # Step 4: sample the observation SD
+    Yhat = XB + rep(u_i, each = m)
+    sigma_e = 1/sqrt(rgamma(n = 1, shape = n*m/2,
+                            rate = sum((Y - Yhat)^2)/2))
+
+
+    # Step 5: sample the beta variance parameters
+    hsparams = sampleEvolParams(beta, evolParams = hsparams, evol_error = "HS")
+    sigma_beta = as.numeric(hsparams$sigma_wt)
+    # hsparams = sampleHierHC(eps2 = as.numeric(beta^2),
+    #                         etaHC = hsparams$etaHC,
+    #                         xiHC = hsparams$xiHC,
+    #                         eta0 = hsparams$eta0,
+    #                         xi0 = hsparams$xi0)
+    # sigma_beta = as.numeric(1/sqrt(hsparams$etaHC[[1]]))
+
+    # Store the MCMC output:
+    if(nsi > nburn){
+      # Increment the skip counter:
+      skipcount = skipcount + 1
+
+      # Save the iteration:
+      if(skipcount > nskip){
+        # Increment the save index
+        isave = isave + 1
+
+        # Save the MCMC samples:
+        post_y_pred[isave,,] = rnorm(n = m*n,
+                                     mean = Yhat,
+                                     sd = sigma_e)
+        post_y_pred_sum[isave,] = colSums(post_y_pred[isave,,])
+        post_beta[isave,] = beta
+        post_u[isave,] = u_i
+        post_sigma_u[isave] = sigma_u
+        post_sigma_e[isave] = sigma_e
+        post_lpd[isave,] = colSums(dnorm(Yna,
+                                         mean = XB + rep(u_i, each = m),
+                                         sd = sigma_e, log = TRUE), na.rm=TRUE)
+        # And reset the skip counter:
+        skipcount = 0
+      }
+    }
+  }
+
+  mcmc_output = vector('list')
+  mcmc_output$y_pred = post_y_pred
+  mcmc_output$y_pred_sum = post_y_pred_sum
+  mcmc_output$beta = post_beta
+  mcmc_output$u_i = post_u
+  mcmc_output$sigma_u = post_sigma_u
+  mcmc_output$sigma_e = post_sigma_e
+  mcmc_output$lpd = post_lpd
+
+  return (mcmc_output);
+
+}
+#' Compute the pseudo X and Y variables for LMM summarization
+#'
+#' Given output from a random intercept model, compute
+#' the "X" and "Y" variables needed for the least squares
+#' reparametrization.
+#'
+#' @param XX (\code{n x p}) matrix of covariates
+#' @param post_y_pred (\code{nsave x m x n}) array of posterior predictive draws
+#' @param post_sigma_e (\code{nsave}) draws from the posterior distribution
+#' of the observation error SD
+#' @param post_sigma_u (\code{nsave}) draws from the posterior distribution
+#' of the random intercept SD
+#' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
+#' draws summed over the replicates within each subject (optional)
+#' @return list of the covariates and the response
+#' @import Matrix
+#' @export
+getXY_randint = function(XX, post_y_pred,
+                      post_sigma_e,
+                      post_sigma_u,
+                      post_y_pred_sum = NULL){
+
+  # Get dimensions:
+  n = nrow(XX); p = ncol(XX); m = dim(post_y_pred)[2]
+  S = nrow(post_y_pred) # number of posterior simulations
+
+  # This can be slow if n is large:
+  if(is.null(post_y_pred_sum)){
+    post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
+  }
+
+  # Estimated Mahalanobis weight matrix (block diagonal), ignoring sigma_e^2:
+  Omega_hat = diag(1, m) -
+    mean(1/(post_sigma_e^2/post_sigma_u^2 + m))
+
+  # Blocked, then matrix square-root:
+  #Omega_block_hat = bdiag(lapply(1:n, function(i){Omega_hat}))
+  #sqrt_Omega_block_hat = Matrix::chol(Omega_block_hat)
+
+  # Matrix square-root, then blocked:
+  sqrt_Omega_hat = chol(Omega_hat)
+  sqrt_Omega_block_hat = bdiag(lapply(1:n, function(i){sqrt_Omega_hat}))
+
+  # Stacked X-matrix:
+  X_stack = apply(XX, 2, function(x)
+    matrix(rep(x, each = m), nrow = m))
+
+  # Design matrix:
+  X_Omega_hat = as.matrix(sqrt_Omega_block_hat%*%X_stack)
+
+  # Response matrix, ignoring sigma_e^2::
+  Omega_y_hat = colMeans(post_y_pred) -
+    rep(colMeans(1/(post_sigma_e^2/post_sigma_u^2 + m)*post_y_pred_sum),
+        each = m)
+  # y_Omega_hat = as.matrix(crossprod(Matrix::solve(sqrt_Omega_block_hat),
+  #                                   matrix(Omega_y_hat)))
+  y_Omega_hat = matrix(crossprod(Matrix::solve(sqrt_Omega_hat),
+                                 Omega_y_hat))
+
+  return(list(
+    X_star = X_Omega_hat,
+    y_star = y_Omega_hat
+  ))
+}
+#' Compute the pseudo X and Y variables for LMM summarization
+#'
+#' Given output from a random intercept model, compute
+#' the "X" and "Y" variables needed for the least squares
+#' reparametrization.
+#'
+#' @param YY \code{m x n} matrix of response variables
+#' @param y_hat \code{n x 1} vector of fitted values (common across the \code{m} replicates)
+#' @param m_scale the Mahalanobis scale factor 1/(sigma_e^2/sigma_u^2 + m)
+#' @return The Mahalanobis loss (scalar)
+#' @export
+loss_maha = function(YY, y_hat, m_scale){
+  m = nrow(YY); n = ncol(YY);
+  1/(n*m)*as.numeric(
+    sum(YY^2) - 2*crossprod(y_hat, colSums(YY)) + m*sum((y_hat)^2) -
+      m_scale*(sum((colSums(YY) - m*y_hat)^2))
+  )
+}
+#####################################################################################################
+# initHierHC() initializes the hierarchical horseshoe prior parameters
+# Inputs:
+# eps2: array of (sum of) squared residuals, with array dimensions ordered hierarchical
+# N (= 1): the top level may be common across N components, which requires a rescaling
+# priorScale ( = 1): assume lowest level is lambda_0 ~ C+(0, priorScale)
+#####################################################################################################
+initHierHC = function(eps2, N = 1, priorScale = 1){
+
+  # Number of "replicates" for each level
+  dj = dim(eps2); if(is.null(dj)) dj = length(eps2)
+
+  # Number of levels
+  Q = length(dj)
+
+  # etaHC contains the "1/lambda^2" parameters and xiHC contains the PX paramaters
+  etaHC = xiHC = vector('list', Q)
+
+  # First level: allow for "sums" over other indices (beforehand)
+  etaHC[[1]] = N/eps2; xiHC[[1]] = 1/(2*etaHC[[1]])
+
+  if(Q > 1){for(j in 2:Q){
+    etaHC[[j]] = 1/(2*colMeans(xiHC[[j-1]]))
+    xiHC[[j]] = 1/(2*etaHC[[j]])
+  }}
+
+  # Global parameters:
+  eta0 = 1/(2*mean(xiHC[[Q]])); xi0 = 1/(2*eta0 + 1/priorScale^2)
+
+  list(etaHC = etaHC, xiHC = xiHC, eta0 = eta0, xi0 = xi0)
+}
+#####################################################################################################
+# sampleHierHC() samples the hierarchical horseshoe prior parameters
+# Inputs:
+# eps2: array of (sum of) squared residuals, with array dimensions ordered hierarchical
+# etaHC: a list of the hierarchical "1/lambda^2" parameters
+# xiHC: a corresponding list of the hierarchical PX parameters
+# eta0: 1/lambda_0^2, i.e., inverse of the global shrinkage parameter
+# xi0: a corresponding "global" PX parameter
+# N (= 1): the top level may be common across N components, which requires a rescaling
+# priorScale ( = 1): assume lowest level is lambda_0 ~ C+(0, priorScale)
+#####################################################################################################
+sampleHierHC = function(eps2, etaHC, xiHC, eta0, xi0, N = 1, priorScale = 1){
+
+  # Number of "replicates" for each level
+  dj = dim(eps2); if(is.null(dj)) dj = length(eps2)
+
+  # Number of levels
+  Q = length(dj)
+
+  # Adjust eps2 for small values:
+  eps2 = eps2 + any(eps2 < 10^-16)/10^8
+
+  for(j in 1:Q){
+
+    # tau parameters (1/lambda^2):
+    if(j > 1){
+      etaHC[[j]] = array(rgamma(n = length(etaHC[[j]]), shape = (dj[j-1] + 1)/2, rate = colSums(xiHC[[j-1]]) + xiHC[[j]]), dj[j:Q])
+    } else etaHC[[1]] = array(rgamma(n = length(etaHC[[1]]), shape = (N + 1)/2, rate = 1/2*eps2 + xiHC[[1]]), dj)
+
+    # xi parameters (PX)
+    if(j < Q){
+      xiHC[[j]]  = array(rgamma(n = length(xiHC[[j]]), shape = 1, rate = matrix(etaHC[[j]]) + rep(matrix(etaHC[[j+1]]), each = dj[j])), dj[j:Q])
+    } else xiHC[[j]]  = array(rgamma(n = length(xiHC[[j]]), shape = 1, rate = matrix(etaHC[[j]]) + rep(matrix(eta0), each = dj[j])), dj[j:Q])
+  }
+
+  # Global parameters:
+  eta0 = rgamma(n = 1, shape = (dj[Q] + 1)/2, rate = sum(xiHC[[Q]]) + xi0)
+  xi0 = rgamma(n = 1, shape = 1, rate = eta0 + 1/priorScale^2)
+
+  list(etaHC = etaHC, xiHC = xiHC, eta0 = eta0, xi0 = xi0)
+}
+#----------------------------------------------------------------------------
+#' Sampler evolution error variance parameters
+#'
+#' Compute one draw of evolution error variance parameters under the various options:
+#' \itemize{
+#' \item horseshoe prior ('HS');
+#' \item Bayesian lasso ('BL').
+#' \item horseshoe prior ('HS');
+#' }
+#'
+#' @param omega \code{T x p} matrix of evolution errors
+#' @param evolParams list of parameters pertaining to each \code{evol_error} type to be updated
+#' @param sigma_e the observation error standard deviation; for (optional) scaling purposes
+#' @param evol_error the evolution error distribution; must be one of
+#' 'HS' (horseshoe prior), or 'NIG' (normal-inverse-gamma prior)
+#' @return List of relevant components in \code{evolParams}: \code{sigma_wt}, the \code{T x p} matrix of evolution standard deviations,
+#' and any additional parameters associated with the priors.
+#'
+#' @note The list \code{evolParams} is specific to each \code{evol_error} type,
+#' but in each case contains the evolution error standard deviations \code{sigma_wt}.
+#'
+#' @note To avoid scaling by the observation standard deviation \code{sigma_e},
+#' simply use \code{sigma_e = 1} in the functional call.
+#'
+#' @export
+sampleEvolParams = function(omega, evolParams,  sigma_e = 1, evol_error = "HS"){
+
+  # Check:
+  if(!((evol_error == "HS") || (evol_error == "BL") || (evol_error == "NIG"))) stop('Error type must be one of HS, BL, or NIG')
+
+  # Make sure omega is (n x p) matrix
+  omega = as.matrix(omega); n = nrow(omega); p = ncol(omega)
+
+  if(evol_error == "HS"){
+
+    # For numerical reasons, keep from getting too small
+    hsOffset = tcrossprod(rep(1,n), apply(omega, 2, function(x) any(x^2 < 10^-16)*max(10^-8, mad(x)/10^6)))
+    hsInput2 = omega^2 + hsOffset
+
+    # Local scale params:
+    evolParams$tauLambdaj = matrix(rgamma(n = n*p, shape = 1, rate = evolParams$xiLambdaj + hsInput2/2), nr = n)
+    evolParams$xiLambdaj = matrix(rgamma(n = n*p, shape = 1, rate = evolParams$tauLambdaj + tcrossprod(rep(1,n), evolParams$tauLambda)), nr = n)
+
+    # Global scale params:
+    evolParams$tauLambda = rgamma(n = p, shape = 0.5 + n/2, colSums(evolParams$xiLambdaj) + evolParams$xiLambda)
+    #evolParams$xiLambda = rgamma(n = p, shape = 1, rate = evolParams$tauLambda + 1/sigma_e^2)
+    evolParams$xiLambda = rgamma(n = p, shape = 1, rate = evolParams$tauLambda + 1)
+
+    evolParams$sigma_wt = 1/sqrt(evolParams$tauLambdaj)
+
+    return(evolParams)
+  }
+  if(evol_error == "BL"){
+
+    # For numerical reasons, keep from getting too small
+    hsOffset = tcrossprod(rep(1,n), apply(omega, 2, function(x) any(x^2 < 10^-16)*max(10^-8, mad(x)/10^6)))
+    hsInput2 = omega^2 + hsOffset
+
+    # 1/tau_j^2 is inverse-gaussian (NOTE: this is very slow!)
+    evolParams$tau_j = matrix(sapply(matrix(hsInput2), function(x){1/sqrt(rig(n = 1,
+                                                                              mean = sqrt(evolParams$lambda2*sigma_e^2/x), # already square the input
+                                                                              scale = 1/evolParams$lambda2))}), nr = n)
+    # Note: should be better priors for lambda2
+    evolParams$lambda2 = rgamma(n = 1,
+                                shape = 1 + n*p,
+                                rate = 2 + sum(evolParams$tau_j^2)/2)
+
+    # For Bayesian lasso, scale by sigma_e:
+    evolParams$sigma_wt = sigma_e*evolParams$tau_j
+
+    return(evolParams)
+  }
+  #if(evol_error == "SV") return(sampleSVparams0(omega = omega, svParams = evolParams))
+  if(evol_error == "NIG") {
+    evolParams = list(sigma_wt = tcrossprod(rep(1,n),
+                                            apply(omega, 2,
+                                                  function(x) 1/sqrt(rgamma(n = 1, shape = n/2 + 0.01, rate = sum(x^2)/2 + 0.01)))))
+    return(evolParams)
+  }
+}
+#----------------------------------------------------------------------------
+#' Initialize the evolution error variance parameters
+#'
+#' Compute initial values for evolution error variance parameters under the various options:
+#' horseshoe prior ('HS'),
+#' Bayesian lasso ('BL'),
+#' or normal-inverse-gamma prior ('NIG').
+#'
+#' @param omega \code{T x p} matrix of evolution errors
+#' @param evol_error the evolution error distribution; must be one of
+#' 'HS' (horseshoe prior), 'BL' (Bayesian lasso), or 'NIG' (normal-inverse-gamma prior)
+#' @return List of relevant components: \code{sigma_wt}, the \code{T x p} matrix of evolution standard deviations,
+#' and any additional parameters associated with the priors.
+#' @export
+initEvolParams = function(omega, evol_error = "HS"){
+
+  # Check:
+  if(!((evol_error == "HS") || (evol_error == "BL") ||(evol_error == "NIG"))) stop('Error type must be one of HS, BL, or NIG')
+
+  # Make sure omega is (n x p) matrix
+  omega = as.matrix(omega); n = nrow(omega); p = ncol(omega)
+
+  if(evol_error == "HS"){
+    tauLambdaj = 1/omega^2;
+    xiLambdaj = 1/(2*tauLambdaj); tauLambda = 1/(2*colMeans(xiLambdaj)); xiLambda = 1/(tauLambda + 1)
+
+    # Parameters to store/return:
+    return(list(sigma_wt = 1/sqrt(tauLambdaj), tauLambdaj = tauLambdaj, xiLambdaj = xiLambdaj, tauLambda = tauLambda, xiLambda = xiLambda))
+  }
+  if(evol_error == "BL"){
+    tau_j = abs(omega); lambda2 = mean(tau_j)
+    return(list(sigma_wt = tau_j, tau_j = tau_j, lambda2 = lambda2))
+  }
+  if(evol_error == "NIG") return(list(sigma_wt = tcrossprod(rep(1,n), apply(omega, 2, function(x) sd(x, na.rm=TRUE)))))
+}
