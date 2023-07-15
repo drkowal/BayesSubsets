@@ -27,11 +27,11 @@ at each posterior draw of the parameters}
 
 \item{yy}{\code{n}-dimensional vector of response variables}
 
-\item{indicators}{\code{L x p} matrix of inclusion indicators
+\item{indicators}{\code{L x p} matrix of inclusion indicators (booleans)
 where each row denotes a candidate subset}
 
-\item{loss_type}{type of loss function; must be "cross-ent" (cross-entropy)
-or "misclass" (misclassication rate)}
+\item{loss_type}{loss function to be used:
+"cross-ent" (cross-entropy) or "misclass" (misclassication rate)}
 
 \item{post_y_hat}{\code{S x n} matrix of posterior fitted values
 at the given \code{XX} covariate values}
@@ -45,7 +45,7 @@ a list with two elements: \code{pred_loss} and \code{emp_loss}
 for the predictive and empirical loss, respectively, for each subset.
 }
 \description{
-Use posterior predictive draws and a sampling-importance reweighting (SIR)
+Use posterior predictive draws and a sampling-importance resampling (SIR)
 algorithm to approximate the cross-validated predictive loss.
 The empirical loss (i.e., the usual quantity in cross-validation)
 is also returned. The values are computed relative to the "best"

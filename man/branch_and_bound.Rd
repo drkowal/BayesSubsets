@@ -40,3 +40,20 @@ the \code{n_best} "best" subsets of each size, include or
 exclude certain variables automatically, and apply
 forward, backward, or exhaustive search.
 }
+\examples{
+# Simulate data:
+dat = simulate_lm(n = 100, p = 10)
+
+# Run branch-and-bound:
+indicators = branch_and_bound(yy = dat$y, XX = dat$X)
+
+# Inspect:
+head(indicators)
+
+# Dimensions:
+dim(indicators)
+
+# Model sizes:
+rowSums(indicators)
+
+}

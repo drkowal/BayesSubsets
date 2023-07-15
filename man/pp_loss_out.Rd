@@ -12,7 +12,7 @@ at the given \code{XX} covariate values}
 
 \item{XX}{\code{n x p} matrix of covariates at which to evaluate}
 
-\item{indicators}{\code{L x p} matrix of inclusion indicators
+\item{indicators}{\code{L x p} matrix of inclusion indicators (booleans)
 where each row denotes a candidate subset}
 
 \item{post_y_hat}{\code{S x n} matrix of posterior fitted values
@@ -34,6 +34,6 @@ each linear model features a different subset of predictors.
 The quantity \code{post_y_hat} is the conditional expectation of the
 response for each covariate value (columns) and using the parameters sampled
 from the posterior (rows). For Bayesian linear regression, this term is
-\code{Xbeta}. If unspecified, the algorithm will instead use \code{post_y_pred},
+ \code{X \%*\% beta}. If unspecified, the algorithm will instead use \code{post_y_pred},
 which is still correct but has lower Monte Carlo efficiency.
 }

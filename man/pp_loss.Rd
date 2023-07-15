@@ -26,7 +26,7 @@ at each posterior draw of the parameters}
 
 \item{yy}{\code{n}-dimensional vector of response variables}
 
-\item{indicators}{\code{L x p} matrix of inclusion indicators
+\item{indicators}{\code{L x p} matrix of inclusion indicators (booleans)
 where each row denotes a candidate subset}
 
 \item{post_y_hat}{\code{S x n} matrix of posterior fitted values
@@ -41,7 +41,7 @@ a list with two elements: \code{pred_loss} and \code{emp_loss}
 for the predictive and empirical loss, respectively, for each subset.
 }
 \description{
-Use posterior predictive draws and a sampling-importance reweighting (SIR)
+Use posterior predictive draws and a sampling-importance resampling (SIR)
 algorithm to approximate the cross-validated predictive squared error loss.
 The empirical squared error loss (i.e., the usual quantity in cross-validation)
 is also returned. The values are computed relative to the "best"
@@ -54,6 +54,6 @@ each linear model features a different subset of predictors.
 The quantity \code{post_y_hat} is the conditional expectation of the
 response for each covariate value (columns) and using the parameters sampled
 from the posterior (rows). For Bayesian linear regression, this term is
-\code{Xbeta}. If unspecified, the algorithm will instead use \code{post_y_pred},
+\code{X \%*\% beta}. If unspecified, the algorithm will instead use \code{post_y_pred},
 which is still correct but has lower Monte Carlo efficiency.
 }

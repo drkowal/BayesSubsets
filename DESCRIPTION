@@ -2,8 +2,9 @@ Package: BayesSubsets
 Type: Package
 Title: Bayesian Subset Selection and Variable Importance
 Version: 0.1.0
-Author: Daniel R. Kowal
-Maintainer: Daniel R. Kowal <daniel.r.kowal@gmail.com>
+Authors@R: 
+    person("Dan", "Kowal", email = "daniel.r.kowal@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0003-0917-3007"))
 Description: Given any Bayesian model for prediction or classification,
     these tools will (i) search for the "best" subsets of linear predictors;
     (ii) collect the *acceptable family* of near-optimal subsets of linear predictors
@@ -15,14 +16,22 @@ Description: Given any Bayesian model for prediction or classification,
     the acceptable family of subsets substantially reduces the inherent sensitivity in selecting 
     a single "best" model and recognizes that many different subsets may perform quite well. 
     For any subset of covariates, the estimated linear coefficients are optimal in a Bayesian 
-    decision analysis sense. 
+    decision analysis sense. Details of the methods and algorithms are 
+    provided in Kowal (2023) <https://jmlr.org/papers/v23/21-0403.html>.
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Imports: 
     glmnet, 
-    leaps, 
-    stats
+    leaps,
+    Matrix, 
+    stats,
+    truncdist
+Suggests: 
+    bayeslm,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 URL: https://github.com/drkowal/BayesSubsets
 BugReports: https://github.com/drkowal/BayesSubsets/issues

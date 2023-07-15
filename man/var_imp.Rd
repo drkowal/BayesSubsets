@@ -7,7 +7,7 @@
 var_imp(indicators, all_accept, co = TRUE, xnames = NULL)
 }
 \arguments{
-\item{indicators}{\code{L x p} matrix of inclusion indicators
+\item{indicators}{\code{L x p} matrix of inclusion indicators (booleans)
 where each row denotes a candidate subset}
 
 \item{all_accept}{indices (i.e., rows of \code{indicators})

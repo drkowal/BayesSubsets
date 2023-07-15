@@ -28,7 +28,7 @@ at each posterior draw of the parameters}
 
 \item{XX}{\code{n x p} matrix of covariates at which to evaluate}
 
-\item{indicators}{\code{L x p} matrix of inclusion indicators
+\item{indicators}{\code{L x p} matrix of inclusion indicators (booleans)
 where each row denotes a candidate subset}
 
 \item{eps_level}{probability required to match the predictive
@@ -37,10 +37,10 @@ performance of the "best" model (up to \code{eta_level})}
 \item{eta_level}{allowable margin (%) between each acceptable model
 and the "best" model}
 
-\item{loss_type}{loss function to be used; currently consider
+\item{loss_type}{loss function to be used:
 "cross-ent" (cross-entropy) or "misclass" (misclassication rate)}
 
-\item{yy}{\code{n}-dimensional vector of response variables (optional)}
+\item{yy}{\code{n}-dimensional vector of response variables}
 
 \item{post_y_hat}{\code{S x n} matrix of posterior fitted values
 at the given \code{XX} covariate values (optional)}
