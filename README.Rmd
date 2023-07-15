@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 
 - Bayesian linear mixed models that regress $Y$ ($m \times n$) on $X$, where we observe $m$ repeated measurements for each subject $i=1,\ldots,n$  [(Kowal, 2022b)](https://doi.org/10.1111/biom.13707)
 
-- Targeted prediction for $h(\tilde y)$, where $h$ is a known functional that describes a key outcome of interest (e.g., $y$ is continuous, and $h$ is an indicator for exceedance of a threshold); multiple functionals can be considered for a single model
+- Targeted prediction for $h(\tilde{y})$, where $h$ is a known functional that describes a key outcome of interest (e.g., $y$ is continuous, and $h$ is an indicator for exceedance of a threshold); multiple functionals can be considered for a single model
 [(Kowal, 2021)](https://doi.org/10.1080/01621459.2021.1891926). 
 
 These specific cases are explored in the vignettes. 
@@ -253,4 +253,7 @@ text(1:nv, par("usr")[3], pos = 1, # adj = 1?
      srt = 45,  xpd = TRUE)
 ```
 
-The traditional model summaries are completely dense: the point estimates $\hat \beta$ are nonzero for *all* covariates. By comparison, the point estimates from the smallest acceptable subset are sparse, with only `r sum(beta_hat_small != 0)` active coefficients. Both sets of posterior summaries track the true coefficients reasonably well. 
+The traditional model summaries are completely dense: the point estimates $\hat{\beta}$ are nonzero for *all* covariates. By comparison, the point estimates from the smallest acceptable subset are sparse, with only `r sum(beta_hat_small != 0)` active coefficients. Both sets of posterior summaries track the true coefficients reasonably well. 
+
+Additional documentation and examples are available at <https://drkowal.github.io/BayesSubsets/>.
+

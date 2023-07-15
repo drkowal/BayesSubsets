@@ -17,10 +17,10 @@ Bayesian regression models. These include:
   where we observe $m$ repeated measurements for each subject
   $i=1,\ldots,n$ [(Kowal, 2022b)](https://doi.org/10.1111/biom.13707)
 
-- Targeted prediction for $h(\tilde y)$, where $h$ is a known functional
-  that describes a key outcome of interest (e.g., $y$ is continuous, and
-  $h$ is an indicator for exceedance of a threshold); multiple
-  functionals can be considered for a single model [(Kowal,
+- Targeted prediction for $h(\tilde{y})$, where $h$ is a known
+  functional that describes a key outcome of interest (e.g., $y$ is
+  continuous, and $h$ is an indicator for exceedance of a threshold);
+  multiple functionals can be considered for a single model [(Kowal,
   2021)](https://doi.org/10.1080/01621459.2021.1891926).
 
 These specific cases are explored in the vignettes.
@@ -103,8 +103,8 @@ fit = bayeslm(y ~ X[,-1], # intercept already included
               burnin = 5000 # initial samples to discard
 )
 #> horseshoe prior 
-#> fixed running time 0.00280364
-#> sampling time 0.255821
+#> fixed running time 0.00331562
+#> sampling time 0.249293
 
 # Extract the posterior predictive draws and lpd:
 temp = post_predict(post_y_hat = tcrossprod(fit$beta, X),
@@ -298,7 +298,10 @@ for $\beta$.
 <img src="man/figures/README-plot-1.png" width="100%" />
 
 The traditional model summaries are completely dense: the point
-estimates $\hat \beta$ are nonzero for *all* covariates. By comparison,
+estimates $\hat{\beta}$ are nonzero for *all* covariates. By comparison,
 the point estimates from the smallest acceptable subset are sparse, with
 only 5 active coefficients. Both sets of posterior summaries track the
 true coefficients reasonably well.
+
+Additional documentation and examples are available at
+<https://drkowal.github.io/BayesSubsets/>.
