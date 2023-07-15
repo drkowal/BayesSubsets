@@ -135,7 +135,7 @@ t(apply(post_beta_s[,S_ex], 2,
 ```
 
 ## Bayesian subset search
-To search across candidate subsets, we use a branch-and-bound algorithm with a weighted least squares approximation to the cross-entropy loss. This approximation uses the logit of $\bar{h}$ as the response and $\bar{h}(1 - \bar{h})$ as the weights. For small $p$ it may be possible to enumerate all possible subsets, but for general use, we screen to the "best" `n_best` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`). We also check to make sure that $\bar{h} \ne 0$ and $\bar{h} \ne 1$, which can occur numerically and creates problems for the logit call.
+To search across candidate subsets, we use a branch-and-bound algorithm with a weighted least squares approximation to the cross-entropy loss. This approximation uses the logit of $\bar{h}$ as the response and $\bar{h}(1 - \bar{h})$ as the weights. For small $p$ it may be possible to enumerate all possible subsets. Here, we screen to the "best" `n_best = 50` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`). We also check to make sure that $\bar{h} \ne 0$ and $\bar{h} \ne 1$, which can occur numerically and creates problems for the logit call.
 
 ```{r exhaust}
 
@@ -146,7 +146,7 @@ h_bar[h_bar == 1] = max(h_bar[h_bar != 1]) # set to the non-one max
 indicators = branch_and_bound(yy = log(h_bar/(1 - h_bar)), # response is the logit of h_bar
                              XX = X,            # covariates
                              wts = h_bar*(1 - h_bar), # weights for weighted least squares
-                             n_best = 30        # restrict to the "best" 30 subsets of each size
+                             n_best = 50        # restrict to the "best" 50 subsets of each size
 )
 
 # Inspect:
@@ -155,8 +155,8 @@ indicators[1:5, 1:10]
 # Dimensions:
 dim(indicators)
 
-# Model sizes:
-rowSums(indicators) # note: intercept always included
+# Summarize the model sizes:
+table(rowSums(indicators)) # note: intercept always included
 ```
 
 ## The acceptable family of "near-optimal" subsets

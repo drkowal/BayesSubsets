@@ -103,8 +103,8 @@ fit = bayeslm(y ~ X[,-1], # intercept already included
               burnin = 5000 # initial samples to discard
 )
 #> horseshoe prior 
-#> fixed running time 0.00331562
-#> sampling time 0.249293
+#> fixed running time 0.00316339
+#> sampling time 0.270838
 
 # Extract the posterior predictive draws and lpd:
 temp = post_predict(post_y_hat = tcrossprod(fit$beta, X),
@@ -116,15 +116,15 @@ post_lpd = temp$post_lpd
 
 Using the model output, we enumerate a collection of “candidate
 subsets”. For small $p$ it may be possible to include all possible
-subsets, but for general use, we screen to the “best” `n_best` models of
-each size according to squared error loss. We store these in a Boolean
-matrix `indicators`: each row is an individual subset, while the columns
+subsets. Here, we screen to the “best” `n_best = 50` models of each size
+according to squared error loss. We store these in a Boolean matrix
+`indicators`: each row is an individual subset, while the columns
 indicate which variables are included (`TRUE`) or excluded (`FALSE`).
 
 ``` r
 indicators = branch_and_bound(yy = fitted(fit), # response is the fitted values
                              XX = X,            # covariates
-                             n_best = 30        # restrict to the "best" 30 subsets of each size
+                             n_best = 50        # restrict to the "best" 50 subsets of each size
 )
 
 # Inspect:
@@ -138,23 +138,16 @@ indicators[1:5, 1:10]
 
 # Dimensions:
 dim(indicators)
-#> [1] 231  11
+#> [1] 361  11
 
-# Model sizes:
-rowSums(indicators) # note: intercept always included
-#>   [1]  2  2  2  2  2  2  2  2  2  2  3  3  3  3  3  3  3  3  3  3  3  3  3  3  3
-#>  [26]  3  3  3  3  3  3  3  3  3  3  3  3  3  3  3  4  4  4  4  4  4  4  4  4  4
-#>  [51]  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  4  5  5  5  5  5
-#>  [76]  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5  5
-#> [101]  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6  6
-#> [126]  6  6  6  6  6  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7  7
-#> [151]  7  7  7  7  7  7  7  7  7  7  8  8  8  8  8  8  8  8  8  8  8  8  8  8  8
-#> [176]  8  8  8  8  8  8  8  8  8  8  8  8  8  8  8  9  9  9  9  9  9  9  9  9  9
-#> [201]  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9  9 10 10 10 10 10
-#> [226] 10 10 10 10 10 11
+# Summarize the model sizes:
+table(rowSums(indicators)) # note: intercept always included
+#> 
+#>  2  3  4  5  6  7  8  9 10 11 
+#> 10 45 50 50 50 50 50 45 10  1
 ```
 
-From this collection of 231 candidate subsets, we seek to filter to the
+From this collection of 361 candidate subsets, we seek to filter to the
 **acceptable family** of subsets, i.e., those “near-optimal” subsets
 that predict about as well as the “best” subset. These are computed
 based on 10-fold cross-validation, and use the out-of-sample predictive
@@ -177,11 +170,11 @@ accept_info = accept_family(post_y_pred = post_y_pred,
 
 # How many subsets are in the acceptable family?
 length(accept_info$all_accept)
-#> [1] 98
+#> [1] 103
 
 # These are the rows of `indicators` that belong to the acceptable family:
 head(accept_info$all_accept)
-#> [1]  71 101 102 103 104 105
+#> [1] 106 156 157 158 159 160
 
 # An example acceptable subset:
 ex_accept = accept_info$all_accept[1]

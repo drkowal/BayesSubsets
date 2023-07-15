@@ -96,7 +96,6 @@ S_ex = c(1, 3, 10)
 
 # Optimal coefficients:
 coef(lm(fitted(fit) ~ X[,S_ex] - 1))
-
 ```
 
 We emphasize two key points, First, this is *not* the same as classical linear regression with $y$ and $X$. To see this, recall that under $M$, the fitted values are $\hat y = X \hat \beta$, where $\hat \beta$ is the posterior expectation of the regression coefficients from the Bayesian linear model. The horseshoe prior on $\beta$ should shrink many of these coefficients toward zero, which propagates regularization to the optimal coefficients in the projection above. Thus, our "fit-to-the-fit" resolves a key criticism of (classical) subset selection.
@@ -133,12 +132,12 @@ t(apply(post_beta_s[,S_ex], 2,
 ```
 
 ## Bayesian subset search
-To this point, we have focused on point and interval (linear) summaries for an arbitrary yet fixed subset $S$. However, we are often interested in *searching* across subsets and measuring the predictive performances. Here, we use the model $M$ output to generate a collection of "candidate subsets" using  decision analysis [(Kowal, 2022a)](https://jmlr.org/papers/v23/21-0403.html). For small $p$ it may be possible to enumerate all possible subsets, but for general use, we screen to the "best" `n_best` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`).
+To this point, we have focused on point and interval (linear) summaries for an arbitrary yet fixed subset $S$. However, we are often interested in *searching* across subsets and measuring the predictive performances. Here, we use the model $M$ output to generate a collection of "candidate subsets" using  decision analysis [(Kowal, 2022a)](https://jmlr.org/papers/v23/21-0403.html). For small $p$ it may be possible to enumerate all possible subsets. Here, we screen to the "best" `n_best = 50` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`).
 
 ```{r exhaust}
 indicators = branch_and_bound(yy = fitted(fit), # response is the fitted values
                              XX = X,            # covariates
-                             n_best = 15        # restrict to the "best" 15 subsets of each size
+                             n_best = 50        # restrict to the "best" 50 subsets of each size
 )
 
 # Inspect:
@@ -147,8 +146,8 @@ indicators[1:5, 1:10]
 # Dimensions:
 dim(indicators)
 
-# Model sizes:
-rowSums(indicators) # note: intercept always included
+# Summarize the model sizes:
+table(rowSums(indicators)) # note: intercept always included
 ```
 
 When $p \gg 30$, it is recommended to use the `prescreen` function, which restricts the search to include only `num_to_keep` possible active variables. This makes the branch-and-bound algorithm feasible for very large $p$. 

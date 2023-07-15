@@ -94,12 +94,12 @@ post_y_pred = temp$post_y_pred
 post_lpd = temp$post_lpd
 ```
 
-Using the model output, we enumerate a collection of "candidate subsets". For small $p$ it may be possible to include all possible subsets, but for general use, we screen to the "best" `n_best` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`).
+Using the model output, we enumerate a collection of "candidate subsets". For small $p$ it may be possible to include all possible subsets. Here,  we screen to the "best" `n_best = 50` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`).
 
 ```{r exhaust}
 indicators = branch_and_bound(yy = fitted(fit), # response is the fitted values
                              XX = X,            # covariates
-                             n_best = 30        # restrict to the "best" 30 subsets of each size
+                             n_best = 50        # restrict to the "best" 50 subsets of each size
 )
 
 # Inspect:
@@ -108,8 +108,8 @@ indicators[1:5, 1:10]
 # Dimensions:
 dim(indicators)
 
-# Model sizes:
-rowSums(indicators) # note: intercept always included
+# Summarize the model sizes:
+table(rowSums(indicators)) # note: intercept always included
 ```
 
 From this collection of `r nrow(indicators)` candidate subsets, we seek to filter to the **acceptable family** of subsets, i.e., those "near-optimal" subsets that predict about as well as the "best" subset. These are computed based on 10-fold cross-validation, and use the out-of-sample predictive distribution from $M$ to provide uncertainty quantification for predictive accuracy.
