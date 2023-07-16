@@ -33,5 +33,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-URL: https://github.com/drkowal/BayesSubsets
+URL: https://github.com/drkowal/BayesSubsets, https://drkowal.github.io/BayesSubsets/
 BugReports: https://github.com/drkowal/BayesSubsets/issues
