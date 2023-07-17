@@ -67,7 +67,8 @@ Given any Bayesian regression model $M$ and any subset of covariates $S$, we com
 S_ex = c(1, 3, 10) 
 
 # Optimal coefficients:
-coef(lm(fitted(fit) ~ X[,S_ex] - 1))
+get_coefs(y_hat = fitted(fit),
+          XX = X[,S_ex])
 ```
 
 ## Uncertainty quantification for the linear coefficients

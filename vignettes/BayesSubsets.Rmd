@@ -95,7 +95,8 @@ Given any Bayesian regression model $M$ and any subset of covariates $S$, we com
 S_ex = c(1, 3, 10) 
 
 # Optimal coefficients:
-coef(lm(fitted(fit) ~ X[,S_ex] - 1))
+get_coefs(y_hat = fitted(fit),
+          XX = X[,S_ex])
 ```
 
 We emphasize two key points, First, this is *not* the same as classical linear regression with $y$ and $X$. To see this, recall that under $M$, the fitted values are $\hat y = X \hat \beta$, where $\hat \beta$ is the posterior expectation of the regression coefficients from the Bayesian linear model. The horseshoe prior on $\beta$ should shrink many of these coefficients toward zero, which propagates regularization to the optimal coefficients in the projection above. Thus, our "fit-to-the-fit" resolves a key criticism of (classical) subset selection.

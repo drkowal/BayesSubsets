@@ -1554,6 +1554,44 @@ proj_posterior_randint = function(post_y_pred, XX, sub_x = 1:ncol(XX),
 
   return(post_beta)
 }
+#' Compute the optimal linear coefficients for any covariates
+#'
+#' Given the fitted values from a Bayesian model and (a subset of)
+#' covariates of interest, compute the optimal linear
+#' coefficients. This applies for continuous (\code{use_ols = TRUE})
+#' or binary (\code{use_ols = FALSE}) outcomes.
+#'
+#' @param y_hat \code{n} vector of fitted values
+#' at the given \code{XX} covariate values
+#' @param XX \code{n x p} matrix of covariates (e.g., restricted to the
+#' subset of \code{p} variables of interest)
+#' @param use_ols logical; if TRUE, use ordinary least squares regression (default);
+#' otherwise use logistic regression
+#' @return the \code{p} optimal regression coefficients
+#'
+#' @export
+get_coefs = function(y_hat, XX, use_ols = TRUE){
+
+  # Get dimensions of the covariate matrix:
+  n = nrow(XX); p = ncol(XX)
+
+  if(length(y_hat) != n)
+    stop('length of y_hat must equal the number of rows of XX')
+
+  # Coefficients:
+  if(use_ols){
+    beta_hat = coef(lm(y_hat ~ XX - 1))
+  } else {
+    beta_hat = suppressWarnings(
+      coef(glm(y_hat ~ XX - 1, family = binomial()))
+    )
+  }
+
+  # To clarify the output:
+  names(beta_hat) = colnames(XX)
+
+  return(beta_hat)
+}
 #' Marginal pre-screening algorithm
 #'
 #' Given \code{S} draws of the \code{p} regression coefficients,

@@ -113,7 +113,9 @@ Given any Bayesian regression model $M$ and any subset of covariates $S$, we com
 S_ex = c(1, 3, 10) 
 
 # Optimal coefficients:
-coef(glm(h_bar ~ X[,S_ex] - 1), family = binomial())
+get_coefs(y_hat = h_bar,
+          XX = X[,S_ex],
+          use_ols = FALSE)
 ```
 
 ## Uncertainty quantification for the linear coefficients
