@@ -99,8 +99,8 @@
 <p><code>BayesSubsets</code> provides <strong>Bayesian subset selection</strong> for a variety of Bayesian regression models. These include:</p>
 <ul>
 <li><p>Bayesian regression of <span class="math inline"><em>y</em> ∈ ℝ</span> or <span class="math inline"><em>y</em> ∈ {0, 1}</span> on (<span class="math inline"><em>n</em> × <em>p</em></span>) covariates <span class="math inline"><em>X</em></span> <a href="https://jmlr.org/papers/v23/21-0403.html" class="external-link">(Kowal, 2022a)</a></p></li>
-<li><p>Bayesian linear mixed models that regress <span class="math inline"><em>Y</em></span> (<span class="math inline"><em>m</em> × <em>n</em></span>) on <span class="math inline"><em>X</em></span>, where we observe <span class="math inline"><em>m</em></span> repeated measurements for each subject <span class="math inline"><em>i</em> = 1, …, <em>n</em></span> <a href="https://doi.org/10.1111/biom.13707" class="external-link">(Kowal, 2022b)</a></p></li>
-<li><p>Targeted prediction for <span class="math inline"><em>h</em>(<em>ỹ</em>)</span>, where <span class="math inline"><em>h</em></span> is a known functional that describes a key outcome of interest (e.g., <span class="math inline"><em>y</em></span> is continuous, and <span class="math inline"><em>h</em></span> is an indicator for exceedance of a threshold); multiple functionals can be considered for a single model <a href="https://doi.org/10.1080/01621459.2021.1891926" class="external-link">(Kowal, 2021)</a>.</p></li>
+<li><p>Targeted prediction for <span class="math inline"><em>h</em>(<em>ỹ</em>)</span>, where <span class="math inline"><em>h</em></span> is a known functional that describes a key outcome of interest (e.g., <span class="math inline"><em>y</em></span> is continuous, and <span class="math inline"><em>h</em></span> is an indicator for exceedance of a threshold); multiple functionals can be considered for a single model <a href="https://doi.org/10.1080/01621459.2021.1891926" class="external-link">(Kowal, 2021)</a></p></li>
+<li><p>Bayesian linear mixed models that regress <span class="math inline"><em>Y</em></span> (<span class="math inline"><em>m</em> × <em>n</em></span>) on <span class="math inline"><em>X</em></span>, where we observe <span class="math inline"><em>m</em></span> repeated measurements for each subject <span class="math inline"><em>i</em> = 1, …, <em>n</em></span> <a href="https://doi.org/10.1111/biom.13707" class="external-link">(Kowal, 2022b)</a>.</p></li>
 </ul>
 <p>These specific cases are explored in the vignettes.</p>
 <p>For <em>any</em> Bayesian regression model <span class="math inline"><em>M</em></span>, <code>BayesSubsets</code> provides:</p>
@@ -151,8 +151,8 @@
 <span>              burnin <span class="op">=</span> <span class="fl">5000</span> <span class="co"># initial samples to discard</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 0.00316339</span></span>
-<span><span class="co">#&gt; sampling time 0.270838</span></span>
+<span><span class="co">#&gt; fixed running time 0.00242526</span></span>
+<span><span class="co">#&gt; sampling time 0.164633</span></span>
 <span></span>
 <span><span class="co"># Extract the posterior predictive draws and lpd:</span></span>
 <span><span class="va">temp</span> <span class="op">=</span> <span class="fu"><a href="reference/post_predict.html">post_predict</a></span><span class="op">(</span>post_y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html" class="external-link">tcrossprod</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">beta</span>, <span class="va">X</span><span class="op">)</span>,</span>
@@ -169,23 +169,23 @@
 <span></span>
 <span><span class="co"># Inspect:</span></span>
 <span><span class="va">indicators</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
-<span><span class="co">#&gt;        X1    X2    X3    X4    X5    X6    X7    X8    X9   X10</span></span>
-<span><span class="co">#&gt; [1,] TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [2,] TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [3,] TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [4,] TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE</span></span>
-<span><span class="co">#&gt; [5,] TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE</span></span>
+<span><span class="co">#&gt;            X1    X2    X3    X4    X5    X6    X7    X8    X9   X10</span></span>
+<span><span class="co">#&gt; force_in TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE</span></span>
 <span></span>
 <span><span class="co"># Dimensions:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 361  11</span></span>
+<span><span class="co">#&gt; [1] 362  11</span></span>
 <span></span>
 <span><span class="co"># Summarize the model sizes:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span><span class="op">)</span> <span class="co"># note: intercept always included</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;  2  3  4  5  6  7  8  9 10 11 </span></span>
-<span><span class="co">#&gt; 10 45 50 50 50 50 50 45 10  1</span></span></code></pre></div>
-<p>From this collection of 361 candidate subsets, we seek to filter to the <strong>acceptable family</strong> of subsets, i.e., those “near-optimal” subsets that predict about as well as the “best” subset. These are computed based on 10-fold cross-validation, and use the out-of-sample predictive distribution from <span class="math inline"><em>M</em></span> to provide uncertainty quantification for predictive accuracy.</p>
+<span><span class="co">#&gt;  1  2  3  4  5  6  7  8  9 10 11 </span></span>
+<span><span class="co">#&gt;  1 10 45 50 50 50 50 50 45 10  1</span></span></code></pre></div>
+<p>From this collection of 362 candidate subsets, we seek to filter to the <strong>acceptable family</strong> of subsets, i.e., those “near-optimal” subsets that predict about as well as the “best” subset. These are computed based on 10-fold cross-validation, and use the out-of-sample predictive distribution from <span class="math inline"><em>M</em></span> to provide uncertainty quantification for predictive accuracy.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute the acceptable family:</span></span>
 <span><span class="va">accept_info</span> <span class="op">=</span> <span class="fu"><a href="reference/accept_family.html">accept_family</a></span><span class="op">(</span>post_y_pred <span class="op">=</span> <span class="va">post_y_pred</span>,</span>
@@ -203,7 +203,7 @@
 <span></span>
 <span><span class="co"># These are the rows of `indicators` that belong to the acceptable family:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">accept_info</span><span class="op">$</span><span class="va">all_accept</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 106 156 157 158 159 160</span></span>
+<span><span class="co">#&gt; [1] 107 157 158 159 160 161</span></span>
 <span></span>
 <span><span class="co"># An example acceptable subset:</span></span>
 <span><span class="va">ex_accept</span> <span class="op">=</span> <span class="va">accept_info</span><span class="op">$</span><span class="va">all_accept</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
