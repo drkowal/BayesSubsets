@@ -101,6 +101,13 @@ branch_and_bound = function(yy,
   # And add the variable names:
   colnames(inclusion_index) = xnames
 
+  # If we have any auto-include, then add those at the top:
+  if(!is.null(to_include)){
+    force_in = rep(FALSE, p)
+    force_in[to_include] = TRUE
+    inclusion_index = rbind(force_in, inclusion_index)
+  }
+
   return(inclusion_index)
 }
 #' Compute the predictive and empirical cross-validated squared error loss
