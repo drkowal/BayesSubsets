@@ -13,15 +13,15 @@ Bayesian regression models. These include:
   ($n \times p$) covariates $X$ [(Kowal,
   2022a)](https://jmlr.org/papers/v23/21-0403.html)
 
-- Bayesian linear mixed models that regress $Y$ ($m \times n$) on $X$,
-  where we observe $m$ repeated measurements for each subject
-  $i=1,\ldots,n$ [(Kowal, 2022b)](https://doi.org/10.1111/biom.13707)
-
 - Targeted prediction for $h(\tilde{y})$, where $h$ is a known
   functional that describes a key outcome of interest (e.g., $y$ is
   continuous, and $h$ is an indicator for exceedance of a threshold);
   multiple functionals can be considered for a single model [(Kowal,
-  2021)](https://doi.org/10.1080/01621459.2021.1891926).
+  2021)](https://doi.org/10.1080/01621459.2021.1891926)
+
+- Bayesian linear mixed models that regress $Y$ ($m \times n$) on $X$,
+  where we observe $m$ repeated measurements for each subject
+  $i=1,\ldots,n$ [(Kowal, 2022b)](https://doi.org/10.1111/biom.13707).
 
 These specific cases are explored in the vignettes.
 
@@ -103,8 +103,8 @@ fit = bayeslm(y ~ X[,-1], # intercept already included
               burnin = 5000 # initial samples to discard
 )
 #> horseshoe prior 
-#> fixed running time 0.00316339
-#> sampling time 0.270838
+#> fixed running time 0.00242526
+#> sampling time 0.164633
 
 # Extract the posterior predictive draws and lpd:
 temp = post_predict(post_y_hat = tcrossprod(fit$beta, X),
@@ -129,25 +129,25 @@ indicators = branch_and_bound(yy = fitted(fit), # response is the fitted values
 
 # Inspect:
 indicators[1:5, 1:10]
-#>        X1    X2    X3    X4    X5    X6    X7    X8    X9   X10
-#> [1,] TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-#> [2,] TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE
-#> [3,] TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-#> [4,] TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE
-#> [5,] TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE
+#>            X1    X2    X3    X4    X5    X6    X7    X8    X9   X10
+#> force_in TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#>          TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#>          TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE
+#>          TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE
 
 # Dimensions:
 dim(indicators)
-#> [1] 361  11
+#> [1] 362  11
 
 # Summarize the model sizes:
 table(rowSums(indicators)) # note: intercept always included
 #> 
-#>  2  3  4  5  6  7  8  9 10 11 
-#> 10 45 50 50 50 50 50 45 10  1
+#>  1  2  3  4  5  6  7  8  9 10 11 
+#>  1 10 45 50 50 50 50 50 45 10  1
 ```
 
-From this collection of 361 candidate subsets, we seek to filter to the
+From this collection of 362 candidate subsets, we seek to filter to the
 **acceptable family** of subsets, i.e., those “near-optimal” subsets
 that predict about as well as the “best” subset. These are computed
 based on 10-fold cross-validation, and use the out-of-sample predictive
@@ -174,7 +174,7 @@ length(accept_info$all_accept)
 
 # These are the rows of `indicators` that belong to the acceptable family:
 head(accept_info$all_accept)
-#> [1] 106 156 157 158 159 160
+#> [1] 107 157 158 159 160 161
 
 # An example acceptable subset:
 ex_accept = accept_info$all_accept[1]
