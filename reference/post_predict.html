@@ -103,8 +103,8 @@ the lpd is not computed</p></dd>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">=</span> <span class="fu">bayeslm</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bayeslm/man/bayeslm.html" class="external-link">bayeslm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">X</span><span class="op">[</span>,<span class="op">-</span><span class="fl">1</span><span class="op">]</span>, <span class="co"># intercept already included</span></span></span>
 <span class="r-in"><span>              N <span class="op">=</span> <span class="fl">1000</span>, burnin <span class="op">=</span> <span class="fl">500</span><span class="op">)</span> <span class="co"># small sim for ex</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> horseshoe prior </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> fixed running time 0.00194962</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> sampling time 0.0287556</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> fixed running time 0.00144501</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sampling time 0.0207289</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compute predictive draws:</span></span></span>
 <span class="r-in"><span><span class="va">temp</span> <span class="op">=</span> <span class="fu">post_predict</span><span class="op">(</span>post_y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html" class="external-link">tcrossprod</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">beta</span>, <span class="va">X</span><span class="op">)</span>,</span></span>

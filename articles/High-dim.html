@@ -132,8 +132,8 @@ use a linear model with horseshoe priors:</p>
 <span>              singular <span class="op">=</span> <span class="cn">TRUE</span> <span class="co"># necessary for p &gt; n</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 2.74586</span></span>
-<span><span class="co">#&gt; sampling time 26.0842</span></span></code></pre></div>
+<span><span class="co">#&gt; fixed running time 2.01974</span></span>
+<span><span class="co">#&gt; sampling time 19.7884</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="computing-optimal-linear-coefficients">Computing optimal linear coefficients<a class="anchor" aria-label="anchor" href="#computing-optimal-linear-coefficients"></a>
@@ -229,29 +229,29 @@ are included (<code>TRUE</code>) or excluded (<code>FALSE</code>).</p>
 <span></span>
 <span><span class="co"># Inspect:</span></span>
 <span><span class="va">indicators</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
-<span><span class="co">#&gt;        X1    X2    X3    X4    X5    X6    X7    X8    X9   X10</span></span>
-<span><span class="co">#&gt; [1,] TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [2,] TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [3,] TRUE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [4,] TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
-<span><span class="co">#&gt; [5,] TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;            X1    X2    X3    X4    X5    X6    X7    X8    X9   X10</span></span>
+<span><span class="co">#&gt; force_in TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE</span></span>
+<span><span class="co">#&gt;          TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span></span>
 <span></span>
 <span><span class="co"># Dimensions:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1359  401</span></span>
+<span><span class="co">#&gt; [1] 1360  401</span></span>
 <span></span>
 <span><span class="co"># Summarize the model sizes:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span><span class="op">)</span> <span class="co"># note: intercept always included</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 </span></span>
-<span><span class="co">#&gt; 29 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 </span></span>
-<span><span class="co">#&gt; 28 29 30 </span></span>
-<span><span class="co">#&gt; 50 29  1</span></span></code></pre></div>
+<span><span class="co">#&gt;  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 </span></span>
+<span><span class="co">#&gt;  1 29 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 </span></span>
+<span><span class="co">#&gt; 27 28 29 30 </span></span>
+<span><span class="co">#&gt; 50 50 29  1</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-acceptable-family-of-near-optimal-subsets">The acceptable family of “near-optimal” subsets<a class="anchor" aria-label="anchor" href="#the-acceptable-family-of-near-optimal-subsets"></a>
 </h2>
-<p>From this large collection of 1359 candidate subsets, we seek to
+<p>From this large collection of 1360 candidate subsets, we seek to
 filter to the <strong>acceptable family</strong> of subsets, i.e., those
 “near-optimal” subsets that predict about as well as the “best” subset.
 These are computed based on 10-fold cross-validation, and use the
@@ -274,7 +274,7 @@ for predictive accuracy.</p>
 <span></span>
 <span><span class="co"># These are the rows of `indicators` that belong to the acceptable family:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">accept_info</span><span class="op">$</span><span class="va">all_accept</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 130 131 180 181 182 183</span></span>
+<span><span class="co">#&gt; [1] 131 132 181 182 183 184</span></span>
 <span></span>
 <span><span class="co"># An example acceptable subset:</span></span>
 <span><span class="va">ex_accept</span> <span class="op">=</span> <span class="va">accept_info</span><span class="op">$</span><span class="va">all_accept</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
