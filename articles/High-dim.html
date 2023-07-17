@@ -132,8 +132,8 @@ use a linear model with horseshoe priors:</p>
 <span>              singular <span class="op">=</span> <span class="cn">TRUE</span> <span class="co"># necessary for p &gt; n</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 2.01974</span></span>
-<span><span class="co">#&gt; sampling time 19.7884</span></span></code></pre></div>
+<span><span class="co">#&gt; fixed running time 2.70729</span></span>
+<span><span class="co">#&gt; sampling time 27.266</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="computing-optimal-linear-coefficients">Computing optimal linear coefficients<a class="anchor" aria-label="anchor" href="#computing-optimal-linear-coefficients"></a>
@@ -149,9 +149,10 @@ the following code computes our optimal linear summary:</p>
 <span><span class="va">S_ex</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span> </span>
 <span></span>
 <span><span class="co"># Optimal coefficients:</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">~</span> <span class="va">X</span><span class="op">[</span>,<span class="va">S_ex</span><span class="op">]</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  X[, S_ex]X1  X[, S_ex]X3 X[, S_ex]X10 </span></span>
-<span><span class="co">#&gt;   -0.6296313    1.0597193   -0.2288200</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/get_coefs.html">get_coefs</a></span><span class="op">(</span>y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>,</span>
+<span>          XX <span class="op">=</span> <span class="va">X</span><span class="op">[</span>,<span class="va">S_ex</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         X1         X3        X10 </span></span>
+<span><span class="co">#&gt; -0.6296313  1.0597193 -0.2288200</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="uncertainty-quantification-for-the-linear-coefficients">Uncertainty quantification for the linear coefficients<a class="anchor" aria-label="anchor" href="#uncertainty-quantification-for-the-linear-coefficients"></a>

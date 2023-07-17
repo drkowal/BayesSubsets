@@ -186,8 +186,8 @@ use a linear model with horseshoe priors:</p>
 <span>              burnin <span class="op">=</span> <span class="fl">5000</span> <span class="co"># initial samples to discard</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 0.00286561</span></span>
-<span><span class="co">#&gt; sampling time 0.612927</span></span></code></pre></div>
+<span><span class="co">#&gt; fixed running time 0.00444005</span></span>
+<span><span class="co">#&gt; sampling time 0.804864</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="computing-optimal-linear-coefficients">Computing optimal linear coefficients<a class="anchor" aria-label="anchor" href="#computing-optimal-linear-coefficients"></a>
@@ -203,9 +203,10 @@ the following code computes our optimal linear summary:</p>
 <span><span class="va">S_ex</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span> </span>
 <span></span>
 <span><span class="co"># Optimal coefficients:</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">~</span> <span class="va">X</span><span class="op">[</span>,<span class="va">S_ex</span><span class="op">]</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  X[, S_ex]X1  X[, S_ex]X3 X[, S_ex]X10 </span></span>
-<span><span class="co">#&gt;   -0.8863355    0.4474228   -0.5731277</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/get_coefs.html">get_coefs</a></span><span class="op">(</span>y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>,</span>
+<span>          XX <span class="op">=</span> <span class="va">X</span><span class="op">[</span>,<span class="va">S_ex</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         X1         X3        X10 </span></span>
+<span><span class="co">#&gt; -0.8863355  0.4474228 -0.5731277</span></span></code></pre></div>
 <p>We emphasize two key points, First, this is <em>not</em> the same as
 classical linear regression with <span class="math inline">\(y\)</span>
 and <span class="math inline">\(X\)</span>. To see this, recall that
