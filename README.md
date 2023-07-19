@@ -103,8 +103,8 @@ fit = bayeslm(y ~ X[,-1], # intercept already included
               burnin = 5000 # initial samples to discard
 )
 #> horseshoe prior 
-#> fixed running time 0.00242526
-#> sampling time 0.164633
+#> fixed running time 0.0104924
+#> sampling time 0.159928
 
 # Extract the posterior predictive draws and lpd:
 temp = post_predict(post_y_hat = tcrossprod(fit$beta, X),
