@@ -28,6 +28,7 @@ We begin by installing and loading the package:
 library(BayesSubsets)
 ```
 
+
 For this example, we will consider simulated data with correlated covariates $X$ and a continuous outcome $y \in \mathbb{R}$:
 
 ```{r sim}
