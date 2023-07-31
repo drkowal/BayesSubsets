@@ -249,6 +249,7 @@ post_predict = function(post_y_hat,
 #' draws summed over the replicates within each subject (optional)
 #' @return list of the covariates and the response
 #' @import Matrix
+#' @export
 getXY_randint = function(XX, post_y_pred,
                          post_sigma_e,
                          post_sigma_u,
