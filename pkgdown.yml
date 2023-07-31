@@ -5,7 +5,8 @@ articles:
   BayesSubsets: BayesSubsets.html
   Binary-target: Binary-target.html
   High-dim: High-dim.html
-last_built: 2023-07-17T21:15Z
+  Linear-mixed: Linear-mixed.html
+last_built: 2023-07-31T22:23Z
 urls:
   reference: https://drkowal.github.io/BayesSubsets/reference
   article: https://drkowal.github.io/BayesSubsets/articles

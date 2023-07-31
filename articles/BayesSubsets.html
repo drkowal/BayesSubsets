@@ -46,6 +46,7 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/Binary-target.html">Targeted Prediction and Binary Outcomes</a>
     <a class="dropdown-item" href="../articles/High-dim.html">BayesSubsets with high-dimensional data</a>
+    <a class="dropdown-item" href="../articles/Linear-mixed.html">Bayesian subset selection for linear mixed models</a>
   </div>
 </li>
       </ul>
@@ -186,8 +187,8 @@ use a linear model with horseshoe priors:</p>
 <span>              burnin <span class="op">=</span> <span class="fl">5000</span> <span class="co"># initial samples to discard</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 0.00245629</span></span>
-<span><span class="co">#&gt; sampling time 0.616455</span></span></code></pre></div>
+<span><span class="co">#&gt; fixed running time 0.00664478</span></span>
+<span><span class="co">#&gt; sampling time 0.774991</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="computing-optimal-linear-coefficients">Computing optimal linear coefficients<a class="anchor" aria-label="anchor" href="#computing-optimal-linear-coefficients"></a>
@@ -330,7 +331,7 @@ for predictive accuracy.</p>
 <span>                            indicators <span class="op">=</span> <span class="va">indicators</span>,</span>
 <span>                            yy <span class="op">=</span> <span class="va">y</span>,</span>
 <span>                            post_y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html" class="external-link">tcrossprod</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">beta</span>, <span class="va">X</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="BayesSubsets_files/figure-html/accept-1.png" width="576"></p>
+<p><img src="BayesSubsets_files/figure-html/accept-1.png" width="768"></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="co"># How many subsets are in the acceptable family?</span></span>
@@ -440,7 +441,7 @@ plausible” explanation.</p>
 <span>        horiz <span class="op">=</span> <span class="cn">TRUE</span>, </span>
 <span>        main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">'Variable importance for the acceptable family'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p><img src="BayesSubsets_files/figure-html/vi-1.png" width="576"></p>
+<p><img src="BayesSubsets_files/figure-html/vi-1.png" width="768"></p>
 <p>We can see that quite a few variables appear in <em>almost</em> all
 acceptable subsets: there are 6 variables that belong to at least 95% of
 the acceptable subsets. There are also 6 variables that belong to fewer
@@ -457,7 +458,7 @@ expectations and 95% posterior credible intervals of the regression
 coefficients <span class="math inline">\(\beta\)</span>. We plot these
 together with the point and interval estimates for the <em>smallest</em>
 acceptable model:</p>
-<p><img src="BayesSubsets_files/figure-html/plot-1.png" width="576"></p>
+<p><img src="BayesSubsets_files/figure-html/plot-1.png" width="768"></p>
 <p>The traditional model summaries are completely dense: the point
 estimates <span class="math inline">\(\hat \beta\)</span> are nonzero
 for <em>all</em> covariates. By comparison, the point estimates from the

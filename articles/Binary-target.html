@@ -46,6 +46,7 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/Binary-target.html">Targeted Prediction and Binary Outcomes</a>
     <a class="dropdown-item" href="../articles/High-dim.html">BayesSubsets with high-dimensional data</a>
+    <a class="dropdown-item" href="../articles/Linear-mixed.html">Bayesian subset selection for linear mixed models</a>
   </div>
 </li>
       </ul>
@@ -156,8 +157,8 @@ log-predictive density evaluations, so we compute those as well.</p>
 <span>              burnin <span class="op">=</span> <span class="fl">5000</span> <span class="co"># initial samples to discard</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 0.00185059</span></span>
-<span><span class="co">#&gt; sampling time 0.229238</span></span>
+<span><span class="co">#&gt; fixed running time 0.00220903</span></span>
+<span><span class="co">#&gt; sampling time 0.248008</span></span>
 <span></span>
 <span><span class="co"># Extract the posterior predictive draws and lpd:</span></span>
 <span><span class="va">temp</span> <span class="op">=</span> <span class="fu"><a href="../reference/post_predict.html">post_predict</a></span><span class="op">(</span>post_y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html" class="external-link">tcrossprod</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">beta</span>, <span class="va">X</span><span class="op">)</span>,</span>
@@ -313,7 +314,7 @@ for predictive accuracy.</p>
 <span>                                   indicators <span class="op">=</span> <span class="va">indicators</span>,</span>
 <span>                                   loss_type <span class="op">=</span> <span class="st">"cross-ent"</span>,</span>
 <span>                                   yy <span class="op">=</span> <span class="fu">h</span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="Binary-target_files/figure-html/accept-1.png" width="576"></p>
+<p><img src="Binary-target_files/figure-html/accept-1.png" width="768"></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="co"># How many subsets are in the acceptable family?</span></span>
@@ -409,7 +410,7 @@ plausible” explanation.</p>
 <span>        horiz <span class="op">=</span> <span class="cn">TRUE</span>, </span>
 <span>        main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">'Variable importance for the acceptable family'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p><img src="Binary-target_files/figure-html/vi-1.png" width="576"></p>
+<p><img src="Binary-target_files/figure-html/vi-1.png" width="768"></p>
 <p>Most variables belong to some, but not all, acceptable subsets.</p>
 </div>
 <div class="section level2">

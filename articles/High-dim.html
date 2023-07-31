@@ -46,6 +46,7 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/Binary-target.html">Targeted Prediction and Binary Outcomes</a>
     <a class="dropdown-item" href="../articles/High-dim.html">BayesSubsets with high-dimensional data</a>
+    <a class="dropdown-item" href="../articles/Linear-mixed.html">Bayesian subset selection for linear mixed models</a>
   </div>
 </li>
       </ul>
@@ -132,8 +133,8 @@ use a linear model with horseshoe priors:</p>
 <span>              singular <span class="op">=</span> <span class="cn">TRUE</span> <span class="co"># necessary for p &gt; n</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; horseshoe prior </span></span>
-<span><span class="co">#&gt; fixed running time 2.45497</span></span>
-<span><span class="co">#&gt; sampling time 20.1337</span></span></code></pre></div>
+<span><span class="co">#&gt; fixed running time 3.77885</span></span>
+<span><span class="co">#&gt; sampling time 26.7106</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="computing-optimal-linear-coefficients">Computing optimal linear coefficients<a class="anchor" aria-label="anchor" href="#computing-optimal-linear-coefficients"></a>
@@ -266,7 +267,7 @@ for predictive accuracy.</p>
 <span>                            indicators <span class="op">=</span> <span class="va">indicators</span>,</span>
 <span>                            yy <span class="op">=</span> <span class="va">y</span>,</span>
 <span>                            post_y_hat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html" class="external-link">tcrossprod</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">beta</span>, <span class="va">X</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="High-dim_files/figure-html/accept-1.png" width="576"></p>
+<p><img src="High-dim_files/figure-html/accept-1.png" width="768"></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="co"># How many subsets are in the acceptable family?</span></span>
@@ -371,7 +372,7 @@ informative to focus on the variables that appear in <em>some</em> or
 <span>        horiz <span class="op">=</span> <span class="cn">TRUE</span>, </span>
 <span>        main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">'Variable importance for the acceptable family'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p><img src="High-dim_files/figure-html/vi-1.png" width="576"></p>
+<p><img src="High-dim_files/figure-html/vi-1.png" width="768"></p>
 <p>As expected, most variables (specifically, 371) end up with a value
 of exactly zero, due to the pre-screening procedure. However, among the
 candidate variables, there is still some variability in the variable

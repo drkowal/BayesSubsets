@@ -37,6 +37,7 @@ forward, backward, or exhaustive search.'><!-- mathjax --><script src="https://c
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/Binary-target.html">Targeted Prediction and Binary Outcomes</a>
     <a class="dropdown-item" href="../articles/High-dim.html">BayesSubsets with high-dimensional data</a>
+    <a class="dropdown-item" href="../articles/Linear-mixed.html">Bayesian subset selection for linear mixed models</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -131,11 +132,11 @@ each subset returned (rows)</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            X1    X2    X3    X4    X5    X6    X7    X8    X9   X10   X11</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> force_in TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Dimensions:</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">indicators</span><span class="op">)</span></span></span>

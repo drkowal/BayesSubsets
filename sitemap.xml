@@ -13,6 +13,9 @@
     <loc>https://drkowal.github.io/BayesSubsets/articles/High-dim.html</loc>
   </url>
   <url>
+    <loc>https://drkowal.github.io/BayesSubsets/articles/Linear-mixed.html</loc>
+  </url>
+  <url>
     <loc>https://drkowal.github.io/BayesSubsets/articles/index.html</loc>
   </url>
   <url>
@@ -41,6 +44,9 @@
   </url>
   <url>
     <loc>https://drkowal.github.io/BayesSubsets/reference/get_coefs.html</loc>
+  </url>
+  <url>
+    <loc>https://drkowal.github.io/BayesSubsets/reference/get_coefs_randint.html</loc>
   </url>
   <url>
     <loc>https://drkowal.github.io/BayesSubsets/reference/index.html</loc>

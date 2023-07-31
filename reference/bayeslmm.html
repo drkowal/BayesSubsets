@@ -39,6 +39,7 @@ horseshoe prior for the fixed effects (regression coefficients)."><!-- mathjax -
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/Binary-target.html">Targeted Prediction and Binary Outcomes</a>
     <a class="dropdown-item" href="../articles/High-dim.html">BayesSubsets with high-dimensional data</a>
+    <a class="dropdown-item" href="../articles/Linear-mixed.html">Bayesian subset selection for linear mixed models</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -133,10 +134,9 @@ evaluated at each posterior draw of the model parameters)</p></li>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Estimated coefficients:</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] -1.007601035  1.019833205  1.054012073  1.262528773 -0.949062858</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6] -0.812915082  0.084357098 -0.102714239 -0.150093705  0.017643618</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [11]  0.070798896 -0.330971997 -0.006429583  0.130545919 -0.170331994</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16] -0.043403974</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] -1.08437785  0.91612472  0.71096223  1.11413442 -0.96520313 -0.71690658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] -0.03455753 -0.17170883  0.16787932 -0.01069944  0.02424872 -0.07709557</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] -0.02726036  0.19529222  0.02857697 -0.02114447</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compare to ground truth:</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="va">dat</span><span class="op">$</span><span class="va">beta_true</span>,</span></span>
