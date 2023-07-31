@@ -18,7 +18,51 @@ knitr::opts_chunk$set(
 
 
 ## Linear Mixed Models 
-fixme
+Linear mixed models (LMMs) are instrumental for regression analysis with structured dependence, such as grouped, clustered, or multilevel data. However, selection among the covariates---while accounting for this structured dependence---remains a challenge.
+
+Here, we explore the Bayesian subset selection strategies for LMMs from [Kowal (2022)](https://doi.org/10.1111/biom.13707). A central priority is to account for the *structured dependence* modeled by the LMM, both in the selection criteria and the performance metrics. Thus, our decision analysis uses **Mahalanobis loss** to measure accuracy. The weighting matrix in the Mahalanobis loss is the inverse (marginal) covariance matrix in the LMM. This quantity depends on the variances of the random effects and the errors, and thus requires careful attention for extracting optimal coefficients, providing proper uncertainty quantification, and designing scalable computations. 
+
+
+### Random intercept model
+Suppose we observe repeated measurements $y_{ij}$, $j=1,\ldots,m_i$ along with $p$ covariates $x_i$ for each individual $i=1,\ldots,n$. The *random intercept model* is a LMM that seeks to capture the within-subject dependence: 
+$$
+y_{ij} = x_i'\beta + u_i + \epsilon_{ij}
+$$
+where $u_i \sim N(0,\sigma_u^2)$ and $\epsilon_{ij} \sim N(0, \sigma_\epsilon^2)$ are mutually independent. By design, the random intercept $u_i$ is shared among all replicates for subject $i$ and induces the within-subject correlation 
+$$
+corr(y_{ij}, y_{ij'}) = \sigma_u^2/(\sigma_u^2 + \sigma_\epsilon^2)
+$$
+conditional on $x_i$ and $\beta$. 
+
+The **goal** is to perform subset selection for $x$ while accounting for these intra-subject dependencies. We do so using Mahalanobis loss, which modifies  squared error loss to include a weight matrix $\Omega$: 
+$$
+\Vert v \Vert_\Omega^2 = v'\Omega v
+$$
+For the random intercept model, the (scaled) Mahalanobis weight matrix is 
+$$
+\sigma_\epsilon^2 \Omega = \mbox{bdiag}\{I_{m_i} - 
+(\sigma_\epsilon^2/\sigma_u^2 + m_i)^{-1} 1_{m_i}1_{m_i}'
+\}
+$$
+where bdiag constructs a block-diagonal matrix across $i=1,\ldots,n$, $I_m$ is the $m\times m$ identity, and $1_m$ is the $m\times 1$ vector of ones. Clearly, this term depends on model parameters $(\sigma_\epsilon, \sigma_u)$ and requires careful consideration for efficient computing. 
+
+### Computing for the random intercept model
+`BayesSubsets` includes a highly efficient MCMC sampler for the random intercept model via the function `bayeslmm()`. In particular, our algorithm *jointly* samples the fixed and random effects $(\beta, \{u_i\})$ using fast and scalable steps. This joint sampler avoids the inefficiencies that arise from iteratively sampling full conditionals of $\beta$ given $u$ and vice versa---which can be so debilitating that it often requires alternative parametrizations (e.g., centered vs. noncentered) or sampling strategies (e.g., interweaving or Stan). Our joint sampler eliminates these issues entirely, while crucially maintaining computational scalability. 
+
+### Subset selection
+Like the other methods implemented in `BayesSubsets`, we provide 
+
+- Optimal **linear** coefficients for any subset of variables;
+
+- Regularization (i.e., shrinkage) for these coefficients, which is inherited from the LMM and helps guard against variance-inflation;
+
+- Uncertainty quantification for these coefficients, again leveraging the LMM;
+
+- The **acceptable family** of "near-optimal" subsets of linear predictors that match or nearly match the "best" (by minimum cross-validated error) subset; and
+
+- Summaries of the acceptable family, including the 1) **smallest acceptable subset** and 2) a  **variable importance** metrics that computes, for each variable $j$, the proportion of acceptable subsets in which $j$ appears. 
+
+The **key difference** from the alternative subset selection strategies (e.g., Kowal [2021](https://doi.org/10.1080/01621459.2021.1891926), [2022a](https://jmlr.org/papers/v23/21-0403.html)) is that each of the above terms uses Mahalanobis loss to account for the structured dependence modeled by the LMM.
 
 ## Getting started
 We begin by installing and loading the package:
@@ -28,8 +72,7 @@ We begin by installing and loading the package:
 library(BayesSubsets)
 ```
 
-
-For this example, we will consider simulated data with correlated covariates $X$ and a continuous outcome $y \in \mathbb{R}$:
+For this example, we will consider simulated data with $n \times p$ correlated covariates $X$ and $m \times n$ response matrix $Y$, where $m$ is the number of replicates per subject. 
 
 ```{r sim}
 # To reproduce:
@@ -45,80 +88,49 @@ dat = simulate_lm_randint(
 )
 
 # Store the data:
-y = dat$y; X = dat$X
+Y = dat$Y; X = dat$X
 ```
 
-Next, we fit a Bayesian linear model. The output from `bayeslm` does not include posterior predictive draws or log-predictive density evaluations, so we compute those as well. 
+Next, we fit a Bayesian LMM with random intercepts. Anticipating sparsity in the regression coefficients, we specify a horseshoe prior for $\beta$. The following function fits this model using a highly efficient MCMC sampling algorithm:
 
 ```{r lm}
-# Package for efficient Bayesian linear regression:
-library(bayeslm)
-
-# Fit the Bayesian regression model:
-fit = bayeslm(y ~ X[,-1], # intercept already included
-              N = 10000, # MCMC samples to save
-              burnin = 5000 # initial samples to discard
+# Fit the Bayesian linear mixed model:
+fit = bayeslmm(Y = Y,
+               X = X,
+               nsave = 1000, # MCMC samples to save
+               nburn = 1000 # initial samples to discard
 )
-
-# Extract the posterior predictive draws and lpd:
-temp = post_predict(post_y_hat = tcrossprod(fit$beta, X),
-                    post_sigma = fit$sigma,
-                    yy = y)
-post_y_pred = temp$post_y_pred
-post_lpd = temp$post_lpd
 ```
 
-To this point, there is no mention of the functional $h$: we observed data $(X, y)$ and fit a Bayesian model $M$. Importantly, we can define many different options for $h$ from this point forward, without the need to refit $M$.
-
-## Defining the functional
-We will define $h$ as the exceedance of a threshold:
-$$
-h(t) = 1(t \ge \tau)
-$$
-where $\tau$ is specified in advance. We will fix $\tau$ at the 90th quantile:
-
-```{r h}
-tau = quantile(y, 0.9)
-h = function(t){
-  1.0*I(t >= tau)
-}
-```
-
-The critical term is the posterior predictive distribution of $h(\tilde{y})$, and its expectation. This is easy to compute:
-
-```{r pph}
-# Posterior predictive draws of h:
-post_h_pred = h(post_y_pred)
-
-# Fitted values:
-h_bar = colMeans(post_h_pred)
-```
-
-A subtle yet important point is that these fitted values $\bar{h} = \mathbb{E}\{h(\tilde{y}) | y\} \in [0,1]$ are *continuous*, while $h(y) \in \{0,1\}$ are binary. For a well-specified model $M$, $\bar{h}$ may be more informative than $h(y)$ because it lies along a continuum. 
-
-## Computing optimal linear coefficients
-Given any Bayesian regression model $M$ and any subset of covariates $S$, we compute the **optimal linear coefficients** according to Bayesian decision analysis. [Kowal (2021)](https://doi.org/10.1080/01621459.2021.1891926) showed that the coefficients can be computed (under cross-entropy loss) using "fit-to-the-fit", and specifically a logistic regression model with response $\bar{h}$ and covariates $X_S$,  i.e., the covariate matrix $X$ restricted to the columns selected in $S$. For an example subset $S = \{1,3,10\}$ and cross-entropy loss, the following code computes our optimal linear summary:
+For any subset of covariates $S$, we compute the **optimal linear coefficients** according to Bayesian decision analysis [(Kowal, 2022)](https://doi.org/10.1111/biom.13707). For an example subset $S = \{1,3,10\}$ and Mahalanobis loss, the following code computes our optimal linear summary under the random intercept model:
 
 ```{r getcoefs}
 # Example subset:
 S_ex = c(1, 3, 10) 
 
 # Optimal coefficients:
-get_coefs(y_hat = h_bar,
-          XX = X[,S_ex],
-          use_ols = FALSE)
+get_coefs_randint(
+  post_y_pred = fit$post_y_pred,
+  XX = X[,S_ex],
+  post_sigma_e = fit$post_sigma_e,
+  post_sigma_u = fit$post_sigma_u,
+  post_y_pred_sum = fit$post_y_pred_sum)
+
+# Compare to the posterior mean for these coefficients:
+coef(fit)[S_ex]
 ```
 
 ## Uncertainty quantification for the linear coefficients
-We may also obtain posterior uncertainty quantification for the linear coefficients that are active (nonzero) in $S$. To do so, we compute the same logistic regression for each posterior predictive draw of $h(\tilde{y})$, which induces a posterior predictive distribution for the linear coefficients under the model $M$---even though $M$ is not a model for binary data. We summarize those posteriors using 95\% credible intervals. 
+We may also obtain posterior uncertainty quantification for the linear coefficients that are active (nonzero) in $S$. To do so, we project the posterior predictive distribution onto $X_S$ draw-by-draw, which induces a posterior predictive distribution for the linear coefficients under the LMM. Again, we use the Mahalanobis loss for this projection, and summarize the posterior using  95\% credible intervals. 
 
 ```{r uq}
 # Posterior predictive draws of *all* coefficients:
-sub_sims = sample(1:nrow(post_h_pred), 1000) # just use 1000 draws
-post_beta_s = proj_posterior(post_y_pred = post_h_pred[sub_sims,], 
-                             XX = X,
-                             sub_x = S_ex,
-                             use_ols = FALSE)
+post_beta_s = proj_posterior_randint(post_y_pred = fit$post_y_pred,
+                                     XX = X,
+                                     sub_x = S_ex,
+                                     post_sigma_e = fit$post_sigma_e,
+                                     post_sigma_u = fit$post_sigma_u,
+                                     post_y_pred_sum = fit$post_y_pred_sum)
 
 dim(post_beta_s) # the coefficients outside S_ex are fixed at zero
 
@@ -126,19 +138,23 @@ dim(post_beta_s) # the coefficients outside S_ex are fixed at zero
 t(apply(post_beta_s[,S_ex], 2, 
         quantile, c(0.05/2, 1 - 0.05/2)))
 ```
-
 ## Bayesian subset search
-To search across candidate subsets, we use a branch-and-bound algorithm with a weighted least squares approximation to the cross-entropy loss. This approximation uses the logit of $\bar{h}$ as the response and $\bar{h}(1 - \bar{h})$ as the weights. For small $p$ it may be possible to enumerate all possible subsets. Here, we screen to the "best" `n_best = 50` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`). We also check to make sure that $\bar{h} \ne 0$ and $\bar{h} \ne 1$, which can occur numerically and creates problems for the logit call.
+To this point, we have focused on point and interval (linear) summaries for an arbitrary yet fixed subset $S$. However, we are often interested in *searching* across subsets and measuring the predictive performances. Here, we use the LMM output to generate a collection of "candidate subsets" using  decision analysis [(Kowal, 2022a)](https://jmlr.org/papers/v23/21-0403.html). 
 
+Since we use Mahalanobis loss, we first construct a (vectorized) $mn$-dimensional response vector $y^*$ and $mn \times p$ covariate matrix $X^*$ such that *squared error loss* with these quantities is equivalent to Mahalanobis loss. 
+```{r pseudo}
+# Access the "X" and "Y" matrices needed for the search:
+objXY = getXY_randint(XX = X, 
+                      post_y_pred = fit$post_y_pred,
+                      post_sigma_e = fit$post_sigma_e,
+                      post_sigma_u = fit$post_sigma_u,
+                      post_y_pred_sum = fit$post_y_pred_sum)
+X_star = objXY$X_star; y_star = objXY$y_star; rm(objXY)
+```
+For small $p$ it may be possible to enumerate all possible subsets. Here, we screen to the "best" `n_best = 50` models of each size according to squared error loss. We store these in a Boolean matrix `indicators`: each row is an individual subset, while the columns indicate which variables are included (`TRUE`) or excluded (`FALSE`).
 ```{r exhaust}
-
-# Make sure we do not have any zeros or ones:
-h_bar[h_bar == 0] = min(h_bar[h_bar != 0]) # set to the non-zero min
-h_bar[h_bar == 1] = max(h_bar[h_bar != 1]) # set to the non-one max
-
-indicators = branch_and_bound(yy = log(h_bar/(1 - h_bar)), # response is the logit of h_bar
-                             XX = X,            # covariates
-                             wts = h_bar*(1 - h_bar), # weights for weighted least squares
+indicators = branch_and_bound(yy = y_star, # response is the fitted values
+                             XX = X_star,            # covariates
                              n_best = 50        # restrict to the "best" 50 subsets of each size
 )
 
@@ -152,17 +168,20 @@ dim(indicators)
 table(rowSums(indicators)) # note: intercept always included
 ```
 
+When $p \gg 30$, it is recommended to use the `prescreen` function, which restricts the search to include only `num_to_keep` possible active variables. This makes the branch-and-bound algorithm feasible for very large $p$. 
+
 ## The acceptable family of "near-optimal" subsets
-From this large collection of `r nrow(indicators)` candidate subsets, we seek to filter to the **acceptable family** of subsets, i.e., those "near-optimal" subsets that predict about as well as the "best" subset. These are computed based on 10-fold cross-validation, and use the out-of-sample predictive distribution from $M$ to provide uncertainty quantification for predictive accuracy.
+From this large collection of `r nrow(indicators)` candidate subsets, we seek to filter to the **acceptable family** of subsets, i.e., those "near-optimal" subsets that predict about as well as the "best" subset. These are computed based on 10-fold cross-validation, and use the out-of-sample predictive distribution from the LMM to provide uncertainty quantification for predictive accuracy.
 
 ```{r accept}
 # Compute the acceptable family:
-accept_info = accept_family_binary(post_y_pred = post_h_pred,
-                                   post_lpd = post_lpd,
-                                   XX = X,
-                                   indicators = indicators,
-                                   loss_type = "cross-ent",
-                                   yy = h(y))
+accept_info = accept_family_randint(post_y_pred = fit$post_y_pred,
+                                    post_lpd = fit$post_lpd,
+                                    post_sigma_e = fit$post_sigma_e,
+                                    post_sigma_u = fit$post_sigma_u,
+                                    XX = X, YY = Y,
+                                    indicators = indicators,
+                                    post_y_pred_sum = fit$post_y_pred_sum)
 
 # How many subsets are in the acceptable family?
 length(accept_info$all_accept)
@@ -175,7 +194,7 @@ ex_accept = accept_info$all_accept[1]
 which(indicators[ex_accept,])
 ```
 
-The plot shows how the out-of-sample predictive performance varies across subsets of different sizes, specifically relative (\% change) to the "best" subset (by minimum cross-validated error; dashed gray vertical line). The x-marks are the (usual) empirical cross-validated error, while the intervals leverage the predictive distribution from $M$ to quantify uncertainty in the out-of-sample predictive performance. While performance improves as variables are added, it is clear that several smaller subsets are highly competitive---especially when accounting for the predictive uncertainty. 
+The plot shows how the out-of-sample predictive performance varies across subsets of different sizes, specifically relative (\% change) to the "best" subset (by minimum cross-validated error; dashed gray vertical line). The x-marks are the (usual) empirical cross-validated error, while the intervals leverage the predictive distribution from the LMM to quantify uncertainty in the out-of-sample predictive performance. While performance improves as variables are added, it is clear that several smaller subsets are highly competitive---especially when accounting for the predictive uncertainty. 
 
 ## Subset selection: the smallest acceptable subset
 If we wish to **select** a single subset, a compelling representative of the acceptable family is the **smallest** acceptable subset. This choice favors parsimony, while its membership in the acceptable family implies that it meets a high standard for predictive accuracy. From the previous plot, we select the smallest subset for which the intervals include zero (solid gray vertical line). 
@@ -191,14 +210,30 @@ S_small = which(beta_hat_small != 0)
 length(S_small)
 ```
 
-We can obtain posterior samples and credible intervals for the coefficients as before:
+The "best" subset by minimum cross-validation often includes many extraneous variables, which is a well-known (and undesirable) byproduct of cross-validation. 
+
+```{r min}
+# Acceptable subset that minimizes CV error:
+beta_hat_min = accept_info$beta_hat_min
+
+# Typically much larger (and often too large...)
+sum(beta_hat_min != 0)
+```
+
+For reference, the true model size is `r sum(dat$beta_true != 0)`. 
+
+Returning to the *smallest* acceptable subset, we can obtain posterior samples and credible intervals for the coefficients as before:
 
 ```{r ci-small}
 # Draws from the posterior predictive distribution
-post_beta_small = proj_posterior(post_y_pred = post_h_pred[sub_sims,], # just use 1000 draws
-                                 XX = X,
-                                 sub_x = S_small,
-                                 use_ols = FALSE)
+
+# Posterior predictive draws of *all* coefficients:
+post_beta_small = proj_posterior_randint(post_y_pred = fit$post_y_pred,
+                                     XX = X,
+                                     sub_x = S_small,
+                                     post_sigma_e = fit$post_sigma_e,
+                                     post_sigma_u = fit$post_sigma_u,
+                                     post_y_pred_sum = fit$post_y_pred_sum)
 
 # Compute 95% credible intervals for the nonzero entries:
 t(apply(post_beta_small[,S_small], 2, 
@@ -226,7 +261,85 @@ barplot(vi_e[order(vi_e, (ncol(X):1))], # order...
 abline(v = 1)
 ```
 
-Most variables belong to some, but not all, acceptable subsets.
+Note that the covariates are highly correlated in this simulated example (and $p$ is moderate), so it is reasonable to expect that many covariates are roughly interchangeable in terms of predictive accuracy. 
 
-## Conclusions
-Even for various functionals $h$ and/or binary outcomes, the pipeline is nearly identical to the simpler continuous outcome case. For binary outcomes, the code is moderately slower: repeated evaluations of `glm` are less efficient than `lm`, and these are needed for 1) posterior predictive uncertainty quantification via `proj_posterior` (with `use_ols = FALSE`) and 2) predictive evaluation to construct the acceptable family via `accept_family_binary`. However, there is no need to refit $M$ for different choices of $h$ (e.g., varying the threshold $\tau$), which can be a substantial time-saver when $M$ is complex (e.g, a functional data regression model). Finally, we note that if $M$ is a binary regression model and $h(t) = t$ is unnecessary, then we can replace `post_h_pred` with `post_y_pred` throughout (and `y` simply replaces `h(y)`). 
+## Comparing with traditional posterior summaries
+Typically, Bayesian linear regression would report the posterior expectations and 95\% posterior credible intervals of the regression coefficients $\beta$. We plot these together with the point and interval estimates for the *smallest* acceptable model:
+
+```{r plot, echo = FALSE}
+# Which variables to include in the plot?
+use_vars = 2:ncol(X) # Exclude intercept
+nv = length(use_vars)
+
+# Posterior mean of coefficients:
+beta_hat = coef(fit)
+
+# Compute 95% credible intervals for posterior and smallest acceptable subset:
+ci_beta = t(apply(fit$post_beta, 2, 
+        quantile, c(0.05/2, 1 - 0.05/2)))
+ci_beta_small = t(apply(post_beta_small, 2, 
+        quantile, c(0.05/2, 1 - 0.05/2)))
+
+# Order by decreasing coefficients;
+ord = order(beta_hat[use_vars], decreasing = TRUE)
+
+# Initialize the plot:
+par(mfrow=c(1,1), mai = c(1.15,.75,.75,.5));
+jit = 0.25 # jitter
+plot(seq(1 - jit, nv + jit, length = nv), 
+     seq(1 - jit, nv + jit, length = nv), 
+     ylim = range(ci_beta[use_vars,], ci_beta_small[use_vars,]), 
+     type='n', ylab='', xaxt='n', xlab = '',
+     main = 'Estimates and 95% intervals for the linear coefficients')
+abline(v = 1:nv, lwd=2, col = 'black')
+
+
+legend('topright', c('truth', 'post', 'S_small'),
+       bg = 'white',
+       pch = c(4,0,1), col = c('black', 'red', 'blue'))
+
+# Full model:
+arrows(1:nv + jit, ci_beta[use_vars[ord],1],
+       1:nv + jit, ci_beta[use_vars[ord],2],
+       length=0.05, angle=90, code=3, lwd=4, col='red')
+lines(1:nv + jit, beta_hat[use_vars[ord]], type='p', pch=0, lwd = 3, cex = 1.5, col='red')
+
+# S_small
+arrows(1:nv - jit, ci_beta_small[use_vars[ord],1],
+       1:nv - jit, ci_beta_small[use_vars[ord],2],
+       length=0.05, angle=90, code=3, lwd=4, col='blue')
+lines(1:nv - jit, beta_hat_small[use_vars[ord]], type='p', pch=1, lwd = 3, cex = 1.5, col='blue')
+
+# Add the truth:
+lines(1:nv, dat$beta_true[use_vars[ord]], type='p', lwd=3, cex=1.5, pch = 4)
+
+# Reference line:
+abline(h = 0, lwd=1, col='black', lty=2)
+
+axis(1, at = 1:nv, labels=FALSE)
+text(1:nv, par("usr")[3], pos = 1, # adj = 1?
+     labels = colnames(X)[use_vars[ord]], 
+     srt = 45,  xpd = TRUE)
+```
+
+The traditional model summaries are completely dense: the point estimates $\hat \beta$ are nonzero for *all* covariates. By comparison, the point estimates from the smallest acceptable subset are sparse, with only `r sum(beta_hat_small != 0)` active coefficients. By design, the smallest acceptable subset only reports interval estimates for these active coefficients. In this example, the intervals are narrower for the smallest acceptable subset, while the traditional intervals produce large intervals even for the truly zero coefficients. 
+
+## Conclusion
+We have sought to demonstrate that `BayesSubsets` is a useful accompaniment to Bayesian LMM regression workflow. Given a Bayesian LMM---and specifically, a random intercept model for longitudinal data regression---we have shown how to compute
+
+1. Optimal linear summaries for any subset of covariates;
+
+2. Accompanying uncertainty quantification via posterior (predictive) distributions and intervals;
+
+3. Bayesian subset search using decision analysis;
+
+4. The acceptable family of near-optimal subsets; and
+
+5. Key summaries of the acceptable family, including the smallest acceptable subset and a variable importance metric. 
+
+Each of these quantities incorporates the structured dependence (here, due to repeated measurements) via Mahalanobis loss.
+
+When a single subset is required and parsimony is valued, then we recommend the **smallest acceptable subset**. However, we caution against the overreliance on any single subset without compelling motivation. A key contribution of the acceptable family is that it identifies *many* competing explanations (subsets) that are nearly indistinguishable in predictive accuracy. From a purely predictive perspective, we cannot completely rule out any member of the acceptable family. Thus, we further recommend reporting the **variable importance** as a default, variable-specific summary of the acceptable family. 
+
+
+
