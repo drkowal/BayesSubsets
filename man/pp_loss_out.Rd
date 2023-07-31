@@ -7,7 +7,7 @@
 pp_loss_out(post_y_pred, XX, indicators, post_y_hat = NULL)
 }
 \arguments{
-\item{post_y_pred}{\code{S x n} matrix of posterior predictive
+\item{post_y_pred}{\code{S x n} matrix of posterior predictive draws
 at the given \code{XX} covariate values}
 
 \item{XX}{\code{n x p} matrix of covariates at which to evaluate}

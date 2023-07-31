@@ -15,7 +15,7 @@ proj_posterior_randint(
 )
 }
 \arguments{
-\item{post_y_pred}{\code{S x m x n} matrix of posterior predictive
+\item{post_y_pred}{\code{S x m x n} matrix of posterior predictive draws
 at the given \code{XX} covariate values}
 
 \item{XX}{\code{n x p} matrix of covariates}

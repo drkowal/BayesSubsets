@@ -7,7 +7,7 @@
 proj_posterior(post_y_pred, XX, sub_x = 1:ncol(XX), use_ols = TRUE)
 }
 \arguments{
-\item{post_y_pred}{\code{S x n} matrix of posterior predictive
+\item{post_y_pred}{\code{S x n} matrix of posterior predictive draws
 at the given \code{XX} covariate values}
 
 \item{XX}{\code{n x p} matrix of covariates}

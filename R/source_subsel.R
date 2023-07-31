@@ -121,7 +121,7 @@ branch_and_bound = function(yy,
 #' linear models that are fit to the Bayesian model output, where
 #' each linear model features a different subset of predictors.
 #'
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
@@ -275,7 +275,7 @@ pp_loss = function(post_y_pred,
 #' linear models that are fit to the Bayesian model output, where
 #' each linear model features a different subset of predictors.
 #'
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param XX \code{n x p} matrix of covariates at which to evaluate
 #' @param indicators \code{L x p} matrix of inclusion indicators (booleans)
@@ -362,7 +362,7 @@ pp_loss_out = function(post_y_pred,
 #' each linear model features a different subset of predictors.
 #' The loss function may be chosen as cross-entropy or misclassification rate
 #'
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
@@ -536,7 +536,7 @@ pp_loss_binary = function(post_y_pred,
 #' linear models that are fit to the Bayesian model output, where
 #' each linear model features a different subset of predictors.
 #'
-#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values for \code{m} replicates per subject
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
@@ -695,7 +695,7 @@ pp_loss_randint = function(post_y_pred,
 #' \code{XX}; if \code{XX = X} are the in-sample points, then
 #' cross-validation is used to assess out-of-sample predictive performance.
 #'
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters (optional)
@@ -896,7 +896,7 @@ accept_family = function(post_y_pred,
 #' match or nearly match the predictive accuracy of the "best" subset.
 #' This function applies for binary data, such as logistic regression.
 #'
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
@@ -1089,7 +1089,7 @@ accept_family_binary = function(post_y_pred,
 #' \code{XX}; if \code{XX = X} are the in-sample points, then
 #' cross-validation is used to assess out-of-sample predictive performance.
 #'
-#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values for \code{m} replicates per subject
 #' @param post_lpd \code{S} evaluations of the log-likelihood computed
 #' at each posterior draw of the parameters
@@ -1432,7 +1432,7 @@ lasso_path = function(yy_hat,
 #' draws onto (a  subset of) the covariates. This produces
 #' many predictive draws for the regression coefficients,
 #' which provides uncertainty quantification.
-#' @param post_y_pred \code{S x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param XX \code{n x p} matrix of covariates
 #' @param sub_x vector of inclusion indicators for the \code{p} covariates;
@@ -1483,7 +1483,7 @@ proj_posterior = function(post_y_pred, XX, sub_x = 1:ncol(XX), use_ols = TRUE){
 #' draws onto (a  subset of) the covariates using Mahalanobis loss. This produces
 #' many predictive draws for the regression coefficients,
 #' which provides uncertainty quantification.
-#' @param post_y_pred \code{S x m x n} matrix of posterior predictive
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive draws
 #' at the given \code{XX} covariate values
 #' @param XX \code{n x p} matrix of covariates
 #' @param sub_x vector of inclusion indicators for the \code{p} covariates;
@@ -1586,6 +1586,62 @@ get_coefs = function(y_hat, XX, use_ols = TRUE){
       coef(glm(y_hat ~ XX - 1, family = binomial()))
     )
   }
+
+  # To clarify the output:
+  names(beta_hat) = colnames(XX)
+
+  return(beta_hat)
+}
+#' Compute the optimal linear coefficients for any covariates
+#' under a random intercept model
+#'
+#' Given the output from a random intercept model and
+#' covariates of interest, compute the optimal linear
+#' coefficients.
+#'
+#' @param post_y_pred \code{S x m x n} matrix of posterior predictive draws
+#' at the covariate values for \code{m} replicates per subject
+#' @param XX \code{n x p} matrix of covariates (e.g., restricted to the
+#' subset of \code{p} variables of interest)
+#' @param post_sigma_e (\code{nsave}) draws from the posterior distribution
+#' of the observation error SD
+#' @param post_sigma_u (\code{nsave}) draws from the posterior distribution
+#' of the random intercept SD
+#' @param post_y_pred_sum (\code{nsave x n}) matrix of the posterior predictive
+#' draws summed over the replicates within each subject (optional)
+#' @return the \code{p} optimal regression coefficients
+#'
+#' @export
+get_coefs_randint = function(post_y_pred, XX,
+                             post_sigma_e, post_sigma_u,
+                             post_y_pred_sum = NULL
+){
+
+  # Get dimensions of the covariate matrix:
+  n = nrow(XX); p = ncol(XX)
+
+  # And some other dimensions
+  S = nrow(post_y_pred) # number of posterior simulations
+  m = dim(post_y_pred)[2] # number of replicates per subject
+
+  if(dim(post_y_pred)[3] != n)
+    stop('incorrect dimensions for post_y_pred')
+
+  # This can be slow if n is large:
+  if(is.null(post_y_pred_sum)){
+    post_y_pred_sum = apply(post_y_pred, c(1,3), sum)
+  }
+
+  # Compute the objects needed for regression:
+  objXY = getXY_randint(XX = XX,
+                        post_y_pred = post_y_pred,
+                        post_sigma_e = post_sigma_e,
+                        post_sigma_u = post_sigma_u,
+                        post_y_pred_sum = post_y_pred_sum)
+  X_star = objXY$X_star; y_star = objXY$y_star; rm(objXY)
+
+  # Coefficients:
+  beta_hat = coef(lm(y_star ~ X_star - 1))
 
   # To clarify the output:
   names(beta_hat) = colnames(XX)

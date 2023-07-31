@@ -19,7 +19,7 @@ accept_family(
 )
 }
 \arguments{
-\item{post_y_pred}{\code{S x n} matrix of posterior predictive
+\item{post_y_pred}{\code{S x n} matrix of posterior predictive draws
 at the given \code{XX} covariate values}
 
 \item{post_lpd}{\code{S} evaluations of the log-likelihood computed

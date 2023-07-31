@@ -22,7 +22,7 @@ accept_family_randint(
 )
 }
 \arguments{
-\item{post_y_pred}{\code{S x m x n} matrix of posterior predictive
+\item{post_y_pred}{\code{S x m x n} matrix of posterior predictive draws
 at the given \code{XX} covariate values for \code{m} replicates per subject}
 
 \item{post_lpd}{\code{S} evaluations of the log-likelihood computed
